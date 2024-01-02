@@ -1,0 +1,58 @@
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Post,
+  UseInterceptors,
+} from '@nestjs/common';
+import { HuaweiService } from './huawei.service';
+import {
+  CACHE_MANAGER,
+  CacheKey,
+  CacheTTL,
+  CacheInterceptor,
+} from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { ConfigService } from '@nestjs/config';
+
+@Controller('huawei')
+export class HuaweiController {
+  constructor(
+    private readonly huaweiService: HuaweiService,
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
+    private configService: ConfigService,
+  ) {}
+
+  @HttpCode(200)
+  @Post('login')
+  async login() {
+    const response = await this.huaweiService.login();
+    if (response.failCode === 0) {
+      // login was a success
+
+      return {
+        token: response.token,
+        message: 'Logged in',
+      };
+    }
+  }
+
+  @Get('real-time')
+  async testRoute() {
+    const data = await this.huaweiService.getRealStationKpi();
+    return data;
+  }
+
+  @Get('token')
+  async getToken() {
+    const cachedToken = await this.cacheManager.get('huawei-token');
+    if (!cachedToken) {
+      return {
+        message: 'No token found',
+      };
+    }
+    return cachedToken;
+  }
+}

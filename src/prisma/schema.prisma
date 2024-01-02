@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model EVReading {
+  id                 Int      @id @default(autoincrement())
+  minChargeLevel     Int
+  durationStay       Int
+  currentChargeLevel Int
+  carBatteryCapacity Int
+  createdAt          DateTime @default(now())
+}
+
+model WeatherForecast {
+  id               Int      @id @default(autoincrement())
+  temperature      Int
+  hour             String
+  directRadiation  Int
+  diffuseRadiation Int
+  isDay            Boolean  @default(true)
+  cloudCover       Float
+  forecastDate     DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model EnergyPrice {
+  id        Int      @id @default(autoincrement())
+  prices    Json[]
+  today     String?
+  tomorrow  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PVReading {
+  id        Int      @id @default(autoincrement())
+  token     String
+  username  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
