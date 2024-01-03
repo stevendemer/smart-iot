@@ -21,11 +21,8 @@ export class AppController {
   @Get('prices')
   async getHello(): Promise<any> {
     // await this.pricesService.storeJSONPrices();
-
-    await this.weatherService.getForecast();
-
+    // await this.weatherService.getForecast();
     // const prices = await this.dbService.energyPrice.findMany({});
-
     // return {
     //   prices,
     // };

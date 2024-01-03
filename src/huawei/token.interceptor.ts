@@ -4,17 +4,8 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import {
-  Observable,
-  tap,
-  map,
-  switchMap,
-  firstValueFrom,
-  lastValueFrom,
-  forkJoin,
-} from 'rxjs';
-import { HuaweiService } from './huawei.service';
-import { ConfigService } from '@nestjs/config';
+import { Observable } from 'rxjs';
+import { TokenService } from './token.service';
 
 /**
  * Reads each response that falls under the /huawei controller,
@@ -23,26 +14,28 @@ import { ConfigService } from '@nestjs/config';
  */
 @Injectable()
 export class TokenInterceptor implements NestInterceptor {
-  constructor(
-    private readonly huaweiService: HuaweiService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly tokenService: TokenService) {}
 
-  intercept(
+  async intercept(
     context: ExecutionContext,
     next: CallHandler<any>,
-  ): Observable<any> | Promise<Observable<any>> {
-    console.log('Before running interceptor...');
-    return next.handle().pipe(
-      map(async (data) => {
-        const { failCode, ...rest } = data;
-        if (failCode === 305) {
-          // re-login
-          await this.huaweiService.login();
-        } else {
-          console.log('No need to relogin');
-        }
-      }),
-    );
+  ): Promise<Observable<any>> {
+    const token = this.tokenService.getToken();
+    const request = context.switchToHttp().getRequest();
+    const response = context.switchToHttp().getResponse();
+
+    if (token && !this.tokenService.isExpired()) {
+      console.log('Token is fine');
+      request.headers['XSRF-TOKEN'] = token;
+    } else {
+      console.log('Token has expired');
+      // if the token has expired or is not present, refresh it
+      await this.tokenService.refreshToken();
+      const token = this.tokenService.getToken();
+
+      request.headers['XSRF-TOKEN'] = token;
+      console.log(request);
+    }
+    return next.handle();
   }
 }

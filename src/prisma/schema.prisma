@@ -22,12 +22,11 @@ model EVReading {
 model WeatherForecast {
   id               Int      @id @default(autoincrement())
   temperature      Int
-  hour             String
   directRadiation  Int
   diffuseRadiation Int
   isDay            Boolean  @default(true)
   cloudCover       Float
-  forecastDate     DateTime
+  forecastDate     String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -41,10 +40,31 @@ model EnergyPrice {
   updatedAt DateTime @updatedAt
 }
 
+model PVAccount {
+  id         Int         @id @default(autoincrement())
+  username   String      @unique
+  token      String
+  expiration DateTime
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  readings   PVReading[]
+}
+
 model PVReading {
-  id        Int      @id @default(autoincrement())
-  token     String
-  username  String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int     @id @default(autoincrement())
+  inverterState   Int
+  efficiency      Float
+  activePower     Float
+  reactivePower   Float
+  devId           Int
+  devTypeId       Int
+  totalYield      Float
+  totalInputPower Float
+  runState        Boolean @default(false)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  // one-to-many relation
+  account   PVAccount? @relation(fields: [accountId], references: [id])
+  accountId Int?
 }

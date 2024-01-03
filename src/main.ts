@@ -2,12 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
-import { HttpService } from '@nestjs/axios';
-import { InternalServerErrorException } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const httpService = new HttpService();
 
   const config = new DocumentBuilder()
     .setTitle('Smart IOT API')
@@ -17,17 +15,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   app.useGlobalFilters(new HttpExceptionFilter());
-
-  httpService.axiosRef.interceptors.request.use(
-    (response) => {
-      console.log('Inside the response cb', response);
-      return response;
-    },
-    (error) => {
-      console.log('Internal server error exception ', error);
-      throw new InternalServerErrorException();
-    },
-  );
+  app.useGlobalPipes(new ValidationPipe());
 
   SwaggerModule.setup('docs', app, document);
 

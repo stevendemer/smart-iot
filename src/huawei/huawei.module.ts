@@ -2,20 +2,15 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { HuaweiService } from './huawei.service';
 import { HttpModule } from '@nestjs/axios';
 import { HuaweiController } from './huawei.controller';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { TokenInterceptor } from './token.interceptor';
 import { TokenMiddleware } from './token.middleware';
 import { ConfigModule } from '@nestjs/config';
+import { DbModule } from '../db/db.module';
+import { TokenService } from './token.service';
 
 @Module({
-  providers: [
-    HuaweiService,
-    // {
-    //   provide: APP_INTERCEPTOR,
-    //   useClass: TokenInterceptor,
-    // },
-  ],
+  providers: [HuaweiService, TokenService],
   imports: [
+    DbModule,
     ConfigModule,
     HttpModule.register({
       timeout: 8000,

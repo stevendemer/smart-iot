@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { fetchWeatherApi } from 'openmeteo';
 import { DbService } from 'src/db/db.service';
+import * as moment from 'moment';
 
 /**
  * Fetches from openmeteo API the cloud cover, whether is day or not, the radiation values and current temperature.
@@ -11,7 +12,10 @@ import { DbService } from 'src/db/db.service';
 export class WeatherService {
   constructor(private readonly dbService: DbService) {}
 
-  async getForecast() {
+  /**
+   * Fetches from open-meteo the daily forecast and saves it into the db
+   */
+  async getDailyForecast() {
     const url = 'https://api.open-meteo.com/v1/forecast';
 
     const params = {
@@ -69,17 +73,16 @@ export class WeatherService {
     console.log(JSON.stringify(weatherData, null, 2));
 
     for (let i = 0; i < weatherData.hourly.time.length; ++i) {
-      // await this.dbService.forecasts.create({
-      //   data: {
-      //     cloudCover: weatherData.hourly.cloudCover[i],
-      //     temperature: weatherData.hourly.temperature2m[i],
-      //     directRadiation: weatherData.hourly.directRadiation[i],
-      //     diffuseRadiation: weatherData.hourly.diffuseRadiation[i],
-      //     isDay: weatherData.hourly.isDay[i] === 1 ? true : false,
-      //     currentTime: weatherData.hourly.time[i].getHours(),
-      //     forecastDate: weatherData.hourly.time[i].toISOString(),
-      //   },
-      // });
+      await this.dbService.weatherForecast.create({
+        data: {
+          cloudCover: weatherData.hourly.cloudCover[i],
+          temperature: weatherData.hourly.temperature2m[i],
+          directRadiation: weatherData.hourly.directRadiation[i],
+          diffuseRadiation: weatherData.hourly.diffuseRadiation[i],
+          isDay: weatherData.hourly.isDay[i] === 1 ? true : false,
+          forecastDate: weatherData.hourly.time[i].toISOString(),
+        },
+      });
     }
   }
 }

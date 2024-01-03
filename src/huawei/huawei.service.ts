@@ -9,32 +9,16 @@ import {
 import { DbService } from '../db/db.service';
 import * as moment from 'moment';
 import { ConfigService } from '@nestjs/config';
-import {
-  AxiosError,
-  AxiosRequestConfig,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
-} from 'axios';
-
-interface IResponse {
-  failCode: number;
-  success: boolean;
-  token?: string;
-  message?: string;
-}
+import { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 /**
- * The returned token from the SmartPVMS has a TTL of 30 minutes,
- * the failCode attribute is vital for the refresh logic. An interceptor
- * reads each response from the API and if the failCode === 305 the token has expired,
- * so we need to relogin (validateToken)
+ * The returned token from the SmartPVMS has a TTL of 30 minutes
+ * so we need to relogin when needed
  */
 @Injectable()
 export class HuaweiService {
   private logger: Logger = new Logger(HuaweiService.name);
-  private stationCodes = 'NE=36653898';
-  private token = '';
-  private axios = null;
+  private token: string | null = null;
 
   constructor(
     private readonly httpService: HttpService,
@@ -49,35 +33,50 @@ export class HuaweiService {
   }
 
   private setupInterceptors() {
-    // this.httpService.axiosRef.interceptors.request.use(
-    //   async (config: InternalAxiosRequestConfig) => {
-    //     // const { token } = await this.dbService.pVReading.findFirst({});
-    //     const { token } = await this.login();
-    //     config.headers['XSRF-TOKEN'] = token;
-    //     return config;
-    //   },
-    //   (error: AxiosError) => {
-    //     return Promise.reject(error);
-    //   },
-    // );
+    console.log('Inside interceptors');
+    // this.httpService.axiosRef.defaults.headers['XSRF-TOKEN'] = this.token;
+
+    let isLoginIn = false;
+
+    this.httpService.axiosRef.interceptors.request.use(
+      async (config: InternalAxiosRequestConfig) => {
+        console.log('Inside request config: ', this.token);
+        config.headers['XSRF-TOKEN'] = this.token;
+        return config;
+      },
+    );
 
     this.httpService.axiosRef.interceptors.response.use(
       async (response: AxiosResponse) => {
-        if (response.data && response.data.failCode === 305) {
-          console.log('Inside response: ', response.data.failCode);
-          const { token } = await this.login();
-          response.config.headers['XSRF-TOKEN'] = token;
-          console.log('Modified config : ', response.config);
-          // retry the request - works so far
-          return await this.httpService.axiosRef.request(response.config);
+        if (response.data.failCode === 305) {
+          // status code for relogin
+
+          // const { token } = await this.login();
+
+          if (!isLoginIn) {
+            isLoginIn = true;
+
+            await this.login();
+
+            response.config.headers['XSRF-TOKEN'] = this.token;
+
+            return await this.httpService.axiosRef.request(response.config);
+          }
+
+          // response.config.headers['XSRF-TOKEN'] = token;
+          return response;
+        } else {
+          return response;
         }
-        return response;
       },
     );
   }
 
+  /**
+   * Five times every 10 minutes per user allowed
+   * @returns
+   */
   async login() {
-    console.log('Inside login');
     const userName = this.configService.get<string>('HUAWEI_USERNAME');
     const systemCode = this.configService.get<string>('HUAWEI_PASS');
 
@@ -92,13 +91,13 @@ export class HuaweiService {
       try {
         const token = response.headers['xsrf-token'];
         // the token from the API is set to expire in 30 minutes
-        // const expirationDate = moment().add(30, 'minutes').toDate();
+        const expirationDate = moment().add(30, 'minutes').toDate();
 
         this.setToken(token);
 
         // the following query creates a new pvReading on the first login,
         // else update the token and its expiration date
-        await this.dbService.pVReading.upsert({
+        await this.dbService.pVAccount.upsert({
           where: {
             username: userName,
           },
@@ -108,6 +107,7 @@ export class HuaweiService {
           create: {
             token,
             username: userName,
+            expiration: expirationDate,
           },
         });
 
@@ -122,29 +122,13 @@ export class HuaweiService {
       }
     } else {
       this.logger.error(
-        `Huawei login failed with status ${response.status} and response: ${response.data}`,
+        `Huawei login failed with status ${
+          response.status
+        } and response: ${JSON.stringify(response.data, null, 2)}`,
       );
       throw new BadRequestException();
     }
   }
-
-  // /**
-  //  *
-  //  * @param context
-  //  * @param response
-  //  * Reads the response returned from the Huawei API and checks if the token needs to be refreshed
-  //  */
-  // async validateToken(context: ExecutionContext, response: any) {
-  //   if (response.failCode === 305) {
-  //     // user must relogin
-  //     console.log('Logging in again...');
-  //     const username = this.configService.get<string>('HUAWEI_USERNAME');
-  //     const password = this.configService.get<string>('HUAWEI_PASS');
-
-  //     return await this.login(username, password);
-  //   }
-  //   console.log('[RESPONSE] = ', response);
-  // }
 
   async hello() {
     return {
@@ -153,17 +137,102 @@ export class HuaweiService {
     };
   }
 
-  async getRealStationKpi() {
-    const pv = await this.dbService.pVReading.findFirst({});
+  async getToken() {
+    const username = this.configService.get<string>('HUAWEI_USERNAME');
+    const { token, expiration } = await this.dbService.pVAccount.findFirst({
+      where: {
+        username,
+      },
+    });
+
+    return { token, expiration };
+  }
+
+  // Retrieve the real time data from the inverter within one hour span
+  async getRealTimeDevKpi() {
     try {
-      const { data, status } = await this.httpService.axiosRef.post(
-        'getDevRealKpi',
-        {
-          devIds: 1000000036653900,
-          devTypeId: 1,
-          collectTime: 3600000,
-        },
+      // const { data } = await this.httpService.axiosRef.post('getDevRealKpi', {
+      //   devIds: 1000000036653900, // the inverter id
+      //   devTypeId: 1,
+      //   collectTime: 3600000, // 1 hour
+      // });
+      const { data } = await this.httpService.axiosRef.get(
+        'http://localhost:3000/data',
       );
+
+      let username = this.configService.get<string>('HUAWEI_USERNAME');
+
+      const account = await this.dbService.pVAccount.findFirst({
+        where: {
+          username,
+        },
+      });
+
+      if (!account) {
+        await this.login();
+      }
+
+      for (const key of data) {
+        let itemMap = key.dataItemMap;
+        let devId = key.devId;
+        let sn = key.sn;
+
+        let username = this.configService.get<string>('HUAWEI_USERNAME');
+
+        // const account = await this.dbService.pVAccount.findFirst({
+        //   where: {
+        //     username,
+        //   },
+        // });
+
+        await this.dbService.pVReading.create({
+          data: {
+            account: {
+              connect: {
+                username,
+              },
+            },
+            devId,
+            activePower: itemMap.active_power,
+            efficiency: itemMap.efficiency,
+            inverterState: itemMap.inverter_state,
+            totalInputPower: itemMap.mppt_power,
+            reactivePower: itemMap.reactive_power,
+            totalYield: itemMap.total_cap,
+            devTypeId: 1,
+            runState: itemMap.run_state === 1 ? true : false,
+          },
+        });
+
+        console.log('Data inserted');
+      }
+
+      // let dataObj = data;
+      // if (dataObj) {
+      //   let itemMap = dataObj.dataItemMap;
+      //   let devId = dataObj.devId;
+      //   let sn = dataObj.sn;
+
+      // if (Object.keys(itemMap).length === 0) {
+      //   throw new InternalServerErrorException(
+      //     'Empty dataset returned from API',
+      //   );
+      // }
+
+      //   await this.dbService.pVReading.create({
+      //     data: {
+      //       account: { connect: { username } },
+      //       devId,
+      //       activePower: itemMap.active_power,
+      //       efficiency: itemMap.efficiency,
+      //       inverterState: itemMap.inverter_state,
+      //       totalInputPower: itemMap.mppt_power,
+      //       reactivePower: itemMap.reactive_power,
+      //       totalYield: itemMap.total_cap,
+      //       devTypeId: 1,
+      //     },
+      //   });
+      // }
 
       return data;
     } catch (error) {
@@ -173,12 +242,18 @@ export class HuaweiService {
   }
 
   /**
-   * @param devId
-   * Retrieves the realtime data from a device for one hour
-   *
    */
-  async getDeviceRealTime(devId: number) {
+  async getStations() {
     try {
-    } catch (error) {}
+      const { data } = await this.httpService.axiosRef.post('stations', {
+        pageNo: 1,
+        pageCount: 50,
+      });
+
+      return data;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
   }
 }

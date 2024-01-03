@@ -41,8 +41,12 @@ export class HuaweiController {
 
   @Get('real-time')
   async testRoute() {
-    const data = await this.huaweiService.getRealStationKpi();
-    return data;
+    return await this.huaweiService.getRealTimeDevKpi();
+  }
+
+  @Get('stations')
+  async getStations() {
+    return await this.huaweiService.getStations();
   }
 
   @Get('token')
