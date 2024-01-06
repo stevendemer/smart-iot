@@ -10,6 +10,7 @@ import { DbService } from '../db/db.service';
 import * as moment from 'moment';
 import { ConfigService } from '@nestjs/config';
 import { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * The returned token from the SmartPVMS has a TTL of 30 minutes
@@ -33,9 +34,6 @@ export class HuaweiService {
   }
 
   private setupInterceptors() {
-    console.log('Inside interceptors');
-    // this.httpService.axiosRef.defaults.headers['XSRF-TOKEN'] = this.token;
-
     let isLoginIn = false;
 
     this.httpService.axiosRef.interceptors.request.use(
@@ -49,10 +47,6 @@ export class HuaweiService {
     this.httpService.axiosRef.interceptors.response.use(
       async (response: AxiosResponse) => {
         if (response.data.failCode === 305) {
-          // status code for relogin
-
-          // const { token } = await this.login();
-
           if (!isLoginIn) {
             isLoginIn = true;
 
@@ -63,7 +57,6 @@ export class HuaweiService {
             return await this.httpService.axiosRef.request(response.config);
           }
 
-          // response.config.headers['XSRF-TOKEN'] = token;
           return response;
         } else {
           return response;
@@ -118,7 +111,7 @@ export class HuaweiService {
         };
       } catch (error) {
         this.logger.error(error);
-        throw new InternalServerErrorException();
+        throw error;
       }
     } else {
       this.logger.error(
@@ -148,17 +141,21 @@ export class HuaweiService {
     return { token, expiration };
   }
 
-  // Retrieve the real time data from the inverter within one hour span
-  async getRealTimeDevKpi() {
+  // Retrieve the real time data from the inverter
+  async storeDevRealTime() {
     try {
-      // const { data } = await this.httpService.axiosRef.post('getDevRealKpi', {
-      //   devIds: 1000000036653900, // the inverter id
-      //   devTypeId: 1,
-      //   collectTime: 3600000, // 1 hour
-      // });
-      const { data } = await this.httpService.axiosRef.get(
-        'http://localhost:3000/data',
+      const { data } = await firstValueFrom(
+        this.httpService.get(
+          'https://4d27d917-df74-477d-a455-03c5b59ea163.mock.pstmn.io/thirdData/getDevRealKpi',
+        ),
       );
+
+      if (data.success === false) {
+        return {
+          message: 'Request failed',
+          failCode: data.failCode,
+        };
+      }
 
       let username = this.configService.get<string>('HUAWEI_USERNAME');
 
@@ -172,88 +169,54 @@ export class HuaweiService {
         await this.login();
       }
 
-      for (const key of data) {
-        let itemMap = key.dataItemMap;
-        let devId = key.devId;
-        let sn = key.sn;
+      let itemMap = data.data[0]['dataItemMap'];
+      let devId = data.data[0]['devId'];
 
-        let username = this.configService.get<string>('HUAWEI_USERNAME');
-
-        // const account = await this.dbService.pVAccount.findFirst({
-        //   where: {
-        //     username,
-        //   },
-        // });
-
-        await this.dbService.pVReading.create({
-          data: {
-            account: {
-              connect: {
-                username,
-              },
+      const newPvReading = await this.dbService.pVReading.create({
+        data: {
+          account: {
+            connect: {
+              username,
             },
-            devId,
-            activePower: itemMap.active_power,
-            efficiency: itemMap.efficiency,
-            inverterState: itemMap.inverter_state,
-            totalInputPower: itemMap.mppt_power,
-            reactivePower: itemMap.reactive_power,
-            totalYield: itemMap.total_cap,
-            devTypeId: 1,
-            runState: itemMap.run_state === 1 ? true : false,
           },
-        });
+          devId,
+          activePower: itemMap.active_power,
+          efficiency: itemMap.efficiency,
+          inverterState: itemMap.inverter_state,
+          // total dc input energy (used for efficiency and performance)
+          totalInputPower: itemMap.mppt_power,
+          reactivePower: itemMap.reactive_power,
+          // final total yield
+          totalYield: itemMap.total_cap,
+          devTypeId: 1,
+          runState: itemMap.run_state === 1 ? true : false,
+        },
+      });
 
-        console.log('Data inserted');
-      }
-
-      // let dataObj = data;
-      // if (dataObj) {
-      //   let itemMap = dataObj.dataItemMap;
-      //   let devId = dataObj.devId;
-      //   let sn = dataObj.sn;
-
-      // if (Object.keys(itemMap).length === 0) {
-      //   throw new InternalServerErrorException(
-      //     'Empty dataset returned from API',
-      //   );
-      // }
-
-      //   await this.dbService.pVReading.create({
-      //     data: {
-      //       account: { connect: { username } },
-      //       devId,
-      //       activePower: itemMap.active_power,
-      //       efficiency: itemMap.efficiency,
-      //       inverterState: itemMap.inverter_state,
-      //       totalInputPower: itemMap.mppt_power,
-      //       reactivePower: itemMap.reactive_power,
-      //       totalYield: itemMap.total_cap,
-      //       devTypeId: 1,
-      //     },
-      //   });
-      // }
-
-      return data;
+      return newPvReading;
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException();
+      throw error;
     }
   }
+
+  async findPvReading() {}
 
   /**
    */
   async getStations() {
     try {
-      const { data } = await this.httpService.axiosRef.post('stations', {
-        pageNo: 1,
-        pageCount: 50,
-      });
+      const { data } = await firstValueFrom(
+        this.httpService.post('stations', {
+          pageNo: 1,
+          pageCount: 50,
+        }),
+      );
 
       return data;
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException();
+      throw error;
     }
   }
 }

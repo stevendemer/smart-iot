@@ -1,19 +1,15 @@
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { parseString } from 'xml2js';
-import { DbService } from 'src/db/db.service';
+import { DbService } from '../db/db.service';
 import * as moment from 'moment';
-
-/**
- * position 24 -> 22:00 - 23:00
- */
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PricesService {
@@ -79,9 +75,7 @@ export class PricesService {
   async getEnergyPrices() {
     const url = await this.generateURL();
 
-    console.log(url);
-
-    const { data, status } = await this.httpService.axiosRef.get(url);
+    const { data, status } = await firstValueFrom(this.httpService.get(url));
 
     if (status === 401) {
       throw new UnauthorizedException('Missing or invalid ENTSOE token');
@@ -100,54 +94,98 @@ export class PricesService {
     };
   }
 
+  convertPositionToHour(position: any) {
+    const hour = parseInt(position[0]) - 1;
+    return hour < 10 ? `0${hour}:00` : `${hour}:00`;
+  }
+
   /**
    * Gets the XML response, parses it and stores it in the database
    */
-  async storeJSONPrices() {
+  async storePrices() {
     const { prices } = await this.getEnergyPrices();
-    const { periodEnd, periodStart } = this.getDates();
 
     parseString(prices, async (error, result: any) => {
       if (error) {
         this.logger.error(
           `Parsing XML error: ${error.message} - stack: ${error.stack}`,
         );
-        throw new Error('Error parsing XML data from ENTSOE');
+        throw new InternalServerErrorException(
+          'Error parsing XML data from ENTSOE',
+        );
       }
+
+      const { periodEnd, periodStart } = this.getDates();
 
       const timeSeriesArray = result.Publication_MarketDocument.TimeSeries;
 
-      // fields marked with ? are called optional, handle edge cases (day just changed, tomorrow is undefined)
       const todayPrices = timeSeriesArray[0]?.Period?.[0]?.Point || [];
 
       const nextDayPrices = timeSeriesArray[1]?.Period?.[0]?.Point || [];
 
-      const totalPrices = todayPrices.concat(nextDayPrices);
+      todayPrices.map(async (item) => {
+        const hour = this.convertPositionToHour(item.position);
+        const price = parseFloat(item['price.amount'][0]);
 
-      const flattenPrices = totalPrices.map((item: any) => {
-        return {
-          hour: this.convertTimeFormat(item['position'][0]),
-          price: (parseFloat(item['price.amount'][0]) / 1000).toFixed(4),
-        };
+        const formatDate = moment(periodStart, 'YYYYMMDDHHmm').format(
+          'YYYY-MM-DD',
+        );
+
+        await this.dbService.energyPrice
+          .create({
+            data: {
+              date: formatDate,
+              hour,
+              price,
+            },
+          })
+          .catch((error) => {
+            this.logger.error(error);
+            throw error;
+          });
       });
 
-      try {
-        const tomorrow = moment(periodEnd, 'YYYYMMDDHHmm').format('DD-MM-YYYY');
-        const today = moment(periodStart, 'YYYYMMDDHHmm').format('DD-MM-YYYY');
+      nextDayPrices.map(async (item) => {
+        const hour = this.convertPositionToHour(item.position);
+        const price = parseFloat(item['price.amount'][0]);
 
-        await this.dbService.energyPrice.create({
-          data: {
-            prices: flattenPrices,
-            today,
-            tomorrow,
-          },
-        });
+        const formatDate = moment(periodEnd, 'YYYYMMDDHHmm').format(
+          'YYYY-MM-DD',
+        );
 
-        this.logger.log('New prices added to db', flattenPrices);
-      } catch (error) {
-        this.logger.error(error);
-        throw new Error('Error inserting into Prisma');
-      }
+        await this.dbService.energyPrice
+          .create({
+            data: {
+              date: formatDate,
+              hour,
+              price,
+            },
+          })
+          .catch((error) => {
+            this.logger.error(error);
+            throw error;
+          });
+      });
     });
+  }
+
+  async findCurrentHourPrice() {
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+    const hour = now.getHours().toString().padStart(2, '0') + ':00';
+    console.log(hour);
+    console.log(date);
+
+    return this.dbService.energyPrice
+      .findFirst({
+        where: {
+          date,
+          hour,
+        },
+      })
+      .catch((error) => {
+        this.logger.error(error);
+        throw error;
+      });
   }
 }

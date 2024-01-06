@@ -15,7 +15,9 @@ import {
 } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('huawei')
 @Controller('huawei')
 export class HuaweiController {
   constructor(
@@ -39,17 +41,17 @@ export class HuaweiController {
     }
   }
 
-  @Get('real-time')
+  @Get('/dev/real-time')
   async testRoute() {
-    return await this.huaweiService.getRealTimeDevKpi();
+    return await this.huaweiService.storeDevRealTime();
   }
 
-  @Get('stations')
+  @Get('/stations')
   async getStations() {
     return await this.huaweiService.getStations();
   }
 
-  @Get('token')
+  @Get('/token')
   async getToken() {
     const cachedToken = await this.cacheManager.get('huawei-token');
     if (!cachedToken) {

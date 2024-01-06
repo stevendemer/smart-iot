@@ -22,7 +22,6 @@ export class TokenInterceptor implements NestInterceptor {
   ): Promise<Observable<any>> {
     const token = this.tokenService.getToken();
     const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
 
     if (token && !this.tokenService.isExpired()) {
       console.log('Token is fine');

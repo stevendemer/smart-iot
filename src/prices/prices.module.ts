@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { HttpModule } from '@nestjs/axios';
-import { DbModule } from 'src/db/db.module';
-import { DbService } from 'src/db/db.service';
+import { DbModule } from '../db/db.module';
+import { DbService } from '../db/db.service';
 import { PricesController } from './prices.controller';
 
 @Module({

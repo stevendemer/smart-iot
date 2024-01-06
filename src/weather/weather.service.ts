@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { fetchWeatherApi } from 'openmeteo';
-import { DbService } from 'src/db/db.service';
-import * as moment from 'moment';
+import { DbService } from '../db/db.service';
 
 /**
  * Fetches from openmeteo API the cloud cover, whether is day or not, the radiation values and current temperature.

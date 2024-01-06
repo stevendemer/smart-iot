@@ -17,6 +17,8 @@ model EVReading {
   currentChargeLevel Int
   carBatteryCapacity Int
   createdAt          DateTime @default(now())
+
+  @@map("ev_readings")
 }
 
 model WeatherForecast {
@@ -29,15 +31,19 @@ model WeatherForecast {
   forecastDate     String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@map("forecasts")
 }
 
 model EnergyPrice {
   id        Int      @id @default(autoincrement())
-  prices    Json[]
-  today     String?
-  tomorrow  String?
+  price     Decimal // (euro / mwh) -> / 1000 for mwh
+  date      String
+  hour      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("energy_prices")
 }
 
 model PVAccount {
@@ -48,6 +54,8 @@ model PVAccount {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   readings   PVReading[]
+
+  @@map("pv_accounts")
 }
 
 model PVReading {
@@ -67,4 +75,47 @@ model PVReading {
   // one-to-many relation
   account   PVAccount? @relation(fields: [accountId], references: [id])
   accountId Int?
+
+  @@map("pv_readings")
+}
+
+model AmpecoSession {
+  id            Int    @id @default(autoincrement())
+  chargePointId String
+  evseId        String
+
+  startedAt DateTime
+
+  stoppedAt DateTime
+
+  // total amount of electricity consumed
+  energy Float
+
+  // rate of energy flow to the EV's battery
+  powerKw Int
+
+  // state of charge percent (current battery charge leve)
+  socPercent Float
+
+  // cost during the charging session
+  electricityCost Float
+
+  // the total cost to be paid
+  amount Float
+
+  createdAt DateTime @default(now())
+
+  @@map("charging_sessions")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email    String  @unique
+  hash     String
+  hashedRt String?
+
+  @@map("users")
 }

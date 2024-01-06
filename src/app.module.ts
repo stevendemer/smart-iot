@@ -1,29 +1,29 @@
+import { ChargeListener } from './events/charge.listener';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DbModule } from './db/db.module';
 import { PricesModule } from './prices/prices.module';
-import { HttpModule } from '@nestjs/axios';
-import { PricesService } from './prices/prices.service';
 import { ConfigModule } from '@nestjs/config';
-import { DbService } from './db/db.service';
 import { WeatherModule } from './weather/weather.module';
-import { WeatherService } from './weather/weather.service';
 import { AmpecoModule } from './ampeco/ampeco.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
 import { HuaweiModule } from './huawei/huawei.module';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { AuthModule } from './auth/auth.module';
-import { TokenMiddleware } from './huawei/token.middleware';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EvModule } from './ev/ev.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { AccessTokenGuard } from './auth/guards/at.guard';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    DbModule,
+    ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot({
+      delimiter: '.',
+    }),
     PricesModule,
-    HttpModule,
     // reading env variables
     ConfigModule.forRoot({
       isGlobal: true,
@@ -36,13 +36,19 @@ import { EvModule } from './ev/ev.module';
     HuaweiModule,
     AuthModule,
     EvModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
+    ChargeListener,
     AppService,
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AccessTokenGuard,
     },
   ],
 })

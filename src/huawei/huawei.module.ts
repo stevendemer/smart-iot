@@ -10,7 +10,6 @@ import { TokenService } from './token.service';
 @Module({
   providers: [HuaweiService, TokenService],
   imports: [
-    DbModule,
     ConfigModule,
     HttpModule.register({
       timeout: 8000,
