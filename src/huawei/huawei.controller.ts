@@ -27,20 +27,22 @@ export class HuaweiController {
     private configService: ConfigService,
   ) {}
 
-  @HttpCode(200)
-  @Post('login')
-  async login() {
-    const response = await this.huaweiService.login();
-    if (response.failCode === 0) {
-      // login was a success
+  // @HttpCode(200)
+  // @Post('login')
+  // async login() {
+  //   const response = await this.huaweiService.login();
+  //   if (response.failCode === 0) {
+  //     // login was a success
 
-      return {
-        token: response.token,
-        message: 'Logged in',
-      };
-    }
-  }
+  //     return {
+  //       token: response.token,
+  //       message: 'Logged in',
+  //     };
+  //   }
+  // }
 
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(30)
   @Get('/dev/real-time')
   async testRoute() {
     return await this.huaweiService.storeDevRealTime();
@@ -51,14 +53,14 @@ export class HuaweiController {
     return await this.huaweiService.getStations();
   }
 
-  @Get('/token')
-  async getToken() {
-    const cachedToken = await this.cacheManager.get('huawei-token');
-    if (!cachedToken) {
-      return {
-        message: 'No token found',
-      };
-    }
-    return cachedToken;
-  }
+  // @Get('/token')
+  // async getToken() {
+  //   const cachedToken = await this.cacheManager.get('huawei-token');
+  //   if (!cachedToken) {
+  //     return {
+  //       message: 'No token found',
+  //     };
+  //   }
+  //   return cachedToken;
+  // }
 }

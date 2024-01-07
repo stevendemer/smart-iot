@@ -1,14 +1,8 @@
-import { CacheInterceptor } from '@nestjs/cache-manager';
-import {
-  Controller,
-  Get,
-  NotFoundException,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { ApiTags } from '@nestjs/swagger';
+import * as moment from 'moment';
 
-// @UseInterceptors(CacheInterceptor)
 @ApiTags('prices')
 @Controller('prices')
 export class PricesController {
@@ -16,12 +10,40 @@ export class PricesController {
 
   @Get('/now')
   async getPrice() {
-    const price = await this.pricesService.findCurrentHourPrice();
-    return price;
+    return await this.pricesService.findCurrentHourPrice();
   }
 
-  @Get('/store')
-  async getPrices() {
-    return await this.pricesService.storePrices();
+  @Get('/today')
+  async getPricesForToday() {
+    return await this.pricesService.findPricesForToday();
+  }
+
+  @Get('/max')
+  async getHighestPrice() {
+    return await this.pricesService.findHighestPrice();
+  }
+
+  @Get('/all')
+  async getAllPrices() {
+    return await this.pricesService.getAllPrices();
+  }
+
+  @Get('/min')
+  async getLowestPrice() {
+    return await this.pricesService.findLowestPrice();
+  }
+
+  @Get('/max-today')
+  async getHighestToday() {
+    const today = moment().format('YYYY-MM-DD');
+
+    return await this.pricesService.findHighestPrice(today);
+  }
+
+  @Get('/min-today')
+  async getLowestToday() {
+    const today = moment().format('YYYY-MM-DD');
+
+    return await this.pricesService.findLowestPrice(today);
   }
 }

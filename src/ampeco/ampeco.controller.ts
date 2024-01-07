@@ -1,4 +1,10 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { AmpecoService } from './ampeco.service';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -9,51 +15,45 @@ export class AmpecoController {
 
   @Get('/charge-point/:id')
   async findChargePoint(@Param('id') id: number) {
-    return this.ampecoService.getChargePoint(id);
+    return this.ampecoService.getChargePointById(id);
   }
 
   @Get('/charge-point/:id/status')
   async getPointStatus(@Param('id') id: number) {
-    return this.ampecoService.chargePointStatus();
+    return this.ampecoService.chargePointStatus(id);
   }
 
-  @Post('/start')
-  async startCharging() {
-    let chargePointId = 63205; // RENEL-IKE Thess
-    let evseNetworkId = 1;
+  @Post('/stop/:id')
+  async stopCharging(@Param('id') id: number) {
+    // let chargePointId = 63205; // RENEL-IKE Thess
+    // let evseNetworkId = 1;
 
-    return await this.ampecoService.startChargingSession(
-      chargePointId,
-      evseNetworkId,
-    );
+    return await this.ampecoService.stopChargingSession(id);
   }
 
-  @Post('/stop')
-  async stopCharging() {
-    let chargePointId = 63205; // RENEL-IKE Thess
-    let evseNetworkId = 1;
+  @Post('/start/:id/:evseId')
+  async startCharging(
+    @Param('id') id: number,
+    @Param('evseId') evseId: number,
+  ) {
+    // let chargePointId = 63205; // RENEL-IKE Thess
+    // let evseNetworkId = 1;
 
-    return await this.ampecoService.stopChargingSession(
-      chargePointId,
-      evseNetworkId,
-    );
+    return await this.ampecoService.startChargingSession(id, evseId);
   }
 
-  @Get('/store')
-  storeSession() {
-    return this.ampecoService.storeSessionInfo();
+  @Get('/session/:id')
+  async findSession(@Param('id') id: number) {
+    // return await this.ampecoService.storeSessionInfo();
+    const session = await this.ampecoService.getSessionById(id);
+    if (!session) {
+      throw new NotFoundException();
+    }
+    return session;
   }
 
-  // @Post('/charge-point/:chargePointId/stop/:evseId')
-  // async stopCharging(
-  //   @Param('chargePointId') chargePointId: number,
-  //   @Param('evseId') evseId: number,
-  // ) {
-  //   return this.ampecoService.stopChargingSession();
-  // }
-
-  // @Get('/session/:sessionId/status')
-  // async findSession(@Param('sessionId') sessionId: string) {
-  //   return this.ampecoService.getSessionInfo(sessionId);
-  // }
+  @Get('/sessions')
+  async findAllSessions() {
+    return this.ampecoService.getAllSessions();
+  }
 }

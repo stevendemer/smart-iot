@@ -1,5 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -12,52 +13,42 @@ import { DbService } from '../db/db.service';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChargeSessionEvent } from 'src/events/charge-session.event';
+import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 
 @Injectable()
 export class AmpecoService {
   private logger = new Logger(AmpecoService.name);
-  private chargePointId = 63205; // RENEL-IKE Thess
-  private evseNetworkId = 1;
+  // private chargePointId = 63205; // RENEL-IKE Thess
+  // private evseNetworkId = 1;
+  private sessionId: string = '';
+  private isCharging = false;
 
   constructor(
     private readonly httpService: HttpService,
     private readonly dbService: DbService,
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly scheduler: SchedulerRegistry,
   ) {}
-
-  async getChargePoint(chargingPointId: number) {
-    console.log(typeof chargingPointId);
-    try {
-      const { data } = await firstValueFrom(
-        this.httpService
-          .get(`resources/charge-points/v1.0/${chargingPointId}`)
-          .pipe(
-            catchError((error: AxiosError) => {
-              this.logger.error(error);
-              throw error;
-            }),
-          ),
-      );
-
-      return data;
-    } catch (error) {
-      this.logger.error(error);
-      throw error;
-    }
-  }
 
   /**
    *
    * @param chargePointId
    * @param session
    */
-  async stopChargingSession(chargePointId: number, sessionId: number) {
+  async stopChargingSession(chargePointId: number) {
     try {
+      if (!this.isCharging) {
+        return {
+          message: 'No charging session found',
+          success: false,
+        };
+      }
+
       const { data, status } = await firstValueFrom(
         this.httpService
           .get(
-            // `actions/charge-point/v1.0/${chargePointId}/stop/${sessionId}`,
+            // `actions/charge-point/v1.0/${chargePointId}/stop/${this.sessionId}`,
             'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/stop',
             // {
             //   force: true,
@@ -90,14 +81,14 @@ export class AmpecoService {
   /**
    * Reserve an EVSE for charging purposes
    *
-   * @param chargingPointId
+   * @param chargePointId
    * @param evseId
    */
-  async reserveChargingPoint(chargingPointId: number, evseId: number) {
+  async reserveChargingPoint(chargePointId: number, evseId: number) {
     try {
       const { data, status } = await firstValueFrom(
         this.httpService.post(
-          `actions/charge-point/v1.0/${chargingPointId}/reserve/${evseId}`,
+          `actions/charge-point/v1.0/${chargePointId}/reserve/${evseId}`,
         ),
       );
 
@@ -116,18 +107,18 @@ export class AmpecoService {
   /**
    * Start a charging session using the EVSE network ID / Charge point ID
    *
-   * @param chargePointId
+   * @param pointId: charge point id
    * @param evseNetworkid
    * @returns The sessionId
    */
-  async startChargingSession(chargePointId?: number, evseNetworkId?: number) {
+  async startChargingSession(chargePointId: number, evseNetworkId: number) {
     try {
       console.log('Started charging...');
       const { data, status } = await firstValueFrom(
         this.httpService
           .get(
             // `actions/charge-point/v1.0/${chargePointId}/start/${evseNetworkId}`,
-            'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/start',
+            `https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/start`,
           )
           .pipe(
             catchError((error: AxiosError) => {
@@ -136,6 +127,9 @@ export class AmpecoService {
             }),
           ),
       );
+
+      this.isCharging = true;
+      this.sessionId = data.sessionId;
 
       // trigger event
       const chargeSessionEvent = new ChargeSessionEvent();
@@ -146,8 +140,8 @@ export class AmpecoService {
       this.eventEmitter.emit('charging.started', chargeSessionEvent);
 
       return {
-        sessionId: data.sessionId,
-        charging: data.success,
+        sessionId: this.sessionId,
+        charging: this.isCharging,
         message: 'Charging session has started',
       };
     } catch (error) {
@@ -158,14 +152,14 @@ export class AmpecoService {
 
   /**
    * Checks the hardware and network status of the charging point
-   * @param chargePointId
+   * @param id: charge point id
    * @returns The hardwareStatus(string), the evses connected, and networkStatus(string) and the lastUpdatedAt (Date)
    */
-  async chargePointStatus() {
+  async chargePointStatus(chargePointId: number) {
     try {
       const { data } = await firstValueFrom(
         this.httpService
-          .get(`resources/charge-points/v1.0/${this.chargePointId}/status`)
+          .get(`resources/charge-points/v1.0/${chargePointId}/status`)
           .pipe(
             catchError((error: AxiosError) => {
               this.logger.error(error);
@@ -185,27 +179,42 @@ export class AmpecoService {
    *
    * @param sessionId - the id returned by the startCharging action
    */
-  async storeSessionInfo(sessionId?: string) {
+  // @Cron(CronExpression.EVERY_10_SECONDS, { name: 'ampeco' })
+  async storeSessionInfo() {
     try {
-      const { data, status } = await firstValueFrom(
-        this.httpService
-          .get(
-            'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco',
-          )
-          .pipe(
-            // this.httpService.get(`resources/sessions/v1.0/${sessionId}`).pipe(
-            catchError((error: AxiosError) => {
-              this.logger.error(error);
-              throw error;
-            }),
-          ),
-      );
+      if (this.isCharging && this.sessionId) {
+        console.log('Inside store session info');
 
-      let resp = data.data;
+        const { data, status } = await firstValueFrom(
+          this.httpService
+            .get(
+              // `https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/session/${this.sessionId}`,
+              'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/new-session',
+            )
+            .pipe(
+              // this.httpService.get(`resources/sessions/v1.0/${sessionId}`).pipe(
+              catchError((error: AxiosError) => {
+                this.logger.error(error);
+                throw error;
+              }),
+            ),
+        );
 
-      console.log(resp);
+        let resp = data.data;
 
-      if (status === 200) {
+        if (resp.status !== 'active') {
+          const chargeSessionEvent = new ChargeSessionEvent();
+          chargeSessionEvent.isCharging = false;
+
+          this.eventEmitter.emit('charging.stopped', chargeSessionEvent);
+          return {
+            message: 'Charging has stopped',
+            success: false,
+          };
+        }
+
+        console.log('Session: ', resp);
+
         await this.dbService.ampecoSession.create({
           data: {
             chargePointId: this.configService.get<string>('CHARGEPOINT_ID'),
@@ -217,6 +226,7 @@ export class AmpecoService {
             amount: resp.amount,
             startedAt: resp.startedAt,
             stoppedAt: resp.stoppedAt,
+            sessionId: Number(this.sessionId),
           },
         });
 
@@ -226,10 +236,53 @@ export class AmpecoService {
         };
       } else {
         return {
-          message: 'Error retrieving session',
+          message: 'Charging session has not started',
           success: false,
         };
       }
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
+  }
+
+  async getSessionById(id: number) {
+    try {
+      const session = await this.dbService.ampecoSession.findMany({
+        where: {
+          sessionId: id,
+        },
+      });
+
+      return session;
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
+  }
+
+  async getAllSessions() {
+    try {
+      const sessions = await this.dbService.ampecoSession.findMany({});
+      return sessions;
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
+  }
+
+  async getChargePointById(id: number) {
+    try {
+      const { data, status } = await firstValueFrom(
+        this.httpService.get(`resources/charge-points/v1.0/${id}`),
+      );
+
+      if (status === 404) {
+        throw new NotFoundException();
+      } else if (status === 401 || status === 403) {
+        throw new ForbiddenException();
+      }
+      return data;
     } catch (error) {
       this.logger.error(error);
       throw error;

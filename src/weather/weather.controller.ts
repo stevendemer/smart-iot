@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { WeatherService } from './weather.service';
 import * as moment from 'moment';
 import { DbService } from '../db/db.service';
@@ -30,5 +30,34 @@ export class WeatherController {
         },
       },
     });
+  }
+
+  // Get the forecast for the whole date
+  @Get('/forecast/:date')
+  async getForecastByDay(@Param('date') date: string) {
+    const day = moment(date);
+
+    const start = day.startOf('day').toISOString();
+    const end = day.endOf('day').add(2, 'h').toISOString();
+
+    const forecast = await this.dbService.weatherForecast.findMany({
+      where: {
+        forecastDate: {
+          gte: start,
+          lte: end,
+        },
+      },
+    });
+
+    if (!forecast) {
+      throw new NotFoundException();
+    }
+
+    return forecast;
+  }
+
+  @Get('/all')
+  async getAll() {
+    return await this.dbService.weatherForecast.findMany({});
   }
 }

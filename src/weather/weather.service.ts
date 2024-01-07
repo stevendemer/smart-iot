@@ -11,21 +11,19 @@ import { DbService } from '../db/db.service';
 export class WeatherService {
   constructor(private readonly dbService: DbService) {}
 
-  /**
-   * Fetches from open-meteo the daily forecast and saves it into the db
-   */
   async getDailyForecast() {
     const url = 'https://api.open-meteo.com/v1/forecast';
 
+    // the default is a 7-day ahead forecast
     const params = {
       latitude: 40.55556,
       longitude: 22.993086,
       current: ['is_day'],
-      forecast_days: 1,
+      // forecast_days: 1,
       hourly: [
         'temperature_2m',
         'cloud_cover',
-        'is_day', // 1 is daylight, 0 for nighttime
+        'is_day',
         'direct_radiation',
         'diffuse_radiation',
         'apparent_temperature',

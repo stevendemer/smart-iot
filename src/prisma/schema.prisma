@@ -37,7 +37,7 @@ model WeatherForecast {
 
 model EnergyPrice {
   id        Int      @id @default(autoincrement())
-  price     Decimal // (euro / mwh) -> / 1000 for mwh
+  price     Decimal  @db.Decimal(10, 4)
   date      String
   hour      String
   createdAt DateTime @default(now())
@@ -80,9 +80,13 @@ model PVReading {
 }
 
 model AmpecoSession {
-  id            Int    @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   chargePointId String
-  evseId        String
+
+  evseId String
+
+  sessionId Int
 
   startedAt DateTime
 
