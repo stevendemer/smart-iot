@@ -31,7 +31,7 @@ export class ResponseInterceptor implements NestInterceptor {
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
     response.status(status).json({
-      status: false,
+      success: false,
       statusCode: status,
       path: request.url,
       message: exception.message,
@@ -46,7 +46,7 @@ export class ResponseInterceptor implements NestInterceptor {
     const statusCode = response.statusCode;
 
     return {
-      status: true,
+      success: true,
       result: res,
     };
   }

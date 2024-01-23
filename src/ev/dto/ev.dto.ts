@@ -5,7 +5,6 @@ export class EVDto {
   // %
   @ApiProperty({
     description: 'Current charge level of EV',
-    minimum: 0,
   })
   @IsNumber()
   @Min(0)
@@ -14,7 +13,6 @@ export class EVDto {
   // hours
   @ApiProperty({
     description: 'Duration of stay',
-    minimum: 1,
   })
   @IsNumber()
   @Min(1)

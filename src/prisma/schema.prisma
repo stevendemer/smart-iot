@@ -28,7 +28,7 @@ model WeatherForecast {
   diffuseRadiation Int
   isDay            Boolean  @default(true)
   cloudCover       Float
-  forecastDate     String
+  forecastDate     String   @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -36,10 +36,11 @@ model WeatherForecast {
 }
 
 model EnergyPrice {
-  id        Int      @id @default(autoincrement())
-  price     Decimal  @db.Decimal(10, 4)
-  date      String
-  hour      String
+  id    Int     @id @default(autoincrement())
+  price Decimal @db.Decimal(10, 4)
+  date  String
+  hour  String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

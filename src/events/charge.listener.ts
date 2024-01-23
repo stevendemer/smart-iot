@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ChargeSessionEvent } from './charge-session.event';
 import { AmpecoService } from '../ampeco/ampeco.service';
-import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 
 @Injectable()
@@ -15,18 +14,18 @@ export class ChargeListener {
   ) {}
 
   @OnEvent('charging.started')
-  async handleChargingSession(event: ChargeSessionEvent) {
+  async onStartCharge(event: ChargeSessionEvent) {
     // charging has started, store on an hourly basis the session info
     // from ampeco
     if (event.isCharging) {
       this.isCharging = true;
       // start the cron job
-      await this.runJob();
+      await this.storeSessionJob();
     }
   }
 
   @OnEvent('charging.stopped')
-  async handleStopCharging() {
+  async onStopCharge() {
     if (this.isCharging) {
       this.isCharging = false;
       const job = this.scheduler.getCronJob('ampeco');
@@ -37,8 +36,8 @@ export class ChargeListener {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_SECONDS, { name: 'ampeco' })
-  async runJob() {
+  @Cron(CronExpression.EVERY_HOUR, { name: 'ampeco' })
+  async storeSessionJob() {
     if (this.isCharging) {
       // console.log(isCharging);
       console.log('Inside cron job');

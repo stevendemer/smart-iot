@@ -7,18 +7,10 @@ import { ApiTags } from '@nestjs/swagger';
 @ApiTags('weather')
 @Controller('weather')
 export class WeatherController {
-  constructor(
-    private dbService: DbService,
-    private weatherService: WeatherService,
-  ) {}
+  constructor(private dbService: DbService) {}
 
   @Get('now')
   async getForecast() {
-    await this.weatherService.getDailyForecast();
-
-    console.log(moment().add(2, 'hours').toISOString());
-
-    // the default timezone is UTC (2 hours back)
     const date = moment().add(2, 'hours').format('YYYY-MM-DD HH:00:00');
 
     const now = moment(date).toISOString();
@@ -29,35 +21,59 @@ export class WeatherController {
           equals: now,
         },
       },
+      select: {
+        cloudCover: true,
+        diffuseRadiation: true,
+        isDay: true,
+        directRadiation: true,
+        temperature: true,
+        forecastDate: true,
+      },
     });
   }
 
   // Get the forecast for the whole date
+  // ex. /weather/forecast/2023-01-09
   @Get('/forecast/:date')
   async getForecastByDay(@Param('date') date: string) {
-    const day = moment(date);
+    const day = new Date(date).toISOString();
 
-    const start = day.startOf('day').toISOString();
-    const end = day.endOf('day').add(2, 'h').toISOString();
+    console.log(day);
 
     const forecast = await this.dbService.weatherForecast.findMany({
       where: {
         forecastDate: {
-          gte: start,
-          lte: end,
+          contains: day,
         },
+      },
+      select: {
+        cloudCover: true,
+        diffuseRadiation: true,
+        isDay: true,
+        directRadiation: true,
+        temperature: true,
+        forecastDate: true,
       },
     });
 
-    if (!forecast) {
-      throw new NotFoundException();
+    if (!forecast || forecast.length === 0) {
+      throw new NotFoundException('No forecast found for the specified date');
     }
 
     return forecast;
   }
 
   @Get('/all')
-  async getAll() {
-    return await this.dbService.weatherForecast.findMany({});
+  async getAllForecasts() {
+    return await this.dbService.weatherForecast.findMany({
+      select: {
+        cloudCover: true,
+        diffuseRadiation: true,
+        isDay: true,
+        directRadiation: true,
+        temperature: true,
+        forecastDate: true,
+      },
+    });
   }
 }

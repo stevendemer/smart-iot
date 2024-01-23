@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   ExceptionFilter,
+  NotFoundException,
 } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +12,7 @@ import { Tokens } from './types/token.type';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { JwtPayload } from './types/jwtPayload.type';
 import * as argon2 from 'argon2';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +24,25 @@ export class AuthService {
 
   hashBody(data: string) {
     return argon2.hash(data);
+  }
+
+  async login(dto: User): Promise<any> {
+    const payload = {
+      email: dto.email,
+      sub: dto.id,
+    };
+
+    return {
+      ...payload,
+      access_token: this.jwtService.sign(payload, {
+        expiresIn: '1h',
+        secret: process.env.AT_SECRET,
+      }),
+      refresh_token: this.jwtService.sign(payload, {
+        expiresIn: '7d',
+        secret: process.env.RT_SECRET,
+      }),
+    };
   }
 
   async logout(userId: number): Promise<boolean> {
@@ -39,6 +60,24 @@ export class AuthService {
     return true;
   }
 
+  async validateUser(email: string, password: string) {
+    const user = await this.dbService.user.findUnique({
+      where: {
+        email,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('User does not exist');
+    }
+    const isPasswordValid = await argon2.verify(user.hash, password);
+
+    if (!isPasswordValid) {
+      throw new ForbiddenException('Credentials are invalid');
+    }
+    const { hash, hashedRt, ...rest } = user;
+    return rest;
+  }
+
   async signUp(dto: AuthDto): Promise<Tokens> {
     const hash = await this.hashBody(dto.password);
 
@@ -52,7 +91,7 @@ export class AuthService {
       .catch((error) => {
         if (error instanceof PrismaClientKnownRequestError) {
           if (error.code === 'P2002') {
-            throw new ForbiddenException('Credentials are incorrect');
+            throw new ForbiddenException('Credentials are invalid');
           }
         }
         throw error;
@@ -63,53 +102,71 @@ export class AuthService {
     return tokens;
   }
 
-  async login(dto: AuthDto): Promise<Tokens> {
-    const user = await this.dbService.user.findUnique({
-      where: {
-        email: dto.email,
-      },
-    });
+  // async login(dto: AuthDto): Promise<Tokens> {
+  //   const user = await this.dbService.user.findUnique({
+  //     where: {
+  //       email: dto.email,
+  //     },
+  //   });
 
-    if (!user) {
-      throw new ForbiddenException('Access denied');
-    }
+  //   if (!user) {
+  //     throw new ForbiddenException('Access denied');
+  //   }
 
-    const passwordMatches = await argon2.verify(user.hash, dto.password);
+  //   const passwordMatches = await argon2.verify(user.hash, dto.password);
 
-    if (!passwordMatches) {
-      throw new ForbiddenException('Access denied');
-    }
+  //   if (!passwordMatches) {
+  //     throw new ForbiddenException('Access denied');
+  //   }
 
-    const tokens = await this.getTokens(user.id, user.email);
+  //   const tokens = await this.getTokens(user.id, user.email);
 
-    await this.updateRtHash(user.id, tokens.refresh_token);
+  //   await this.updateRtHash(user.id, tokens.refresh_token);
 
-    return tokens;
-  }
+  //   return tokens;
+  // }
 
-  async refreshTokens(userId: number, rt: string): Promise<Tokens> {
-    console.log('Inside refresh tokens');
-    const user = await this.dbService.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
+  // async refreshTokens(userId: number, rt: string): Promise<Tokens> {
+  //   console.log('Inside refresh tokens');
+  //   const user = await this.dbService.user.findUnique({
+  //     where: {
+  //       id: userId,
+  //     },
+  //   });
 
-    if (!user || !user.hashedRt) {
-      throw new ForbiddenException('Access denied');
-    }
+  //   if (!user || !user.hashedRt) {
+  //     throw new ForbiddenException('Access denied');
+  //   }
 
-    const rtMatches = await argon2.verify(user.hashedRt, rt);
+  //   const rtMatches = await argon2.verify(user.hashedRt, rt);
 
-    if (!rtMatches) {
-      throw new ForbiddenException('Access denied');
-    }
+  //   if (!rtMatches) {
+  //     throw new ForbiddenException('Access denied');
+  //   }
 
-    const tokens = await this.getTokens(user.id, user.email);
+  //   const tokens = await this.getTokens(user.id, user.email);
 
-    await this.updateRtHash(user.id, tokens.refresh_token);
+  //   await this.updateRtHash(user.id, tokens.refresh_token);
 
-    return tokens;
+  //   return tokens;
+  // }
+
+  async refreshToken(user: User) {
+    const payload = {
+      email: user.email,
+      sub: user.id,
+    };
+    return {
+      ...payload,
+      access_token: this.jwtService.sign(payload, {
+        expiresIn: '1h',
+        secret: process.env.AT_SECRET,
+      }),
+      refresh_token: this.jwtService.sign(payload, {
+        expiresIn: '7d',
+        secret: process.env.RT_SECRET,
+      }),
+    };
   }
 
   async updateRtHash(userId: number, rt: string): Promise<void> {

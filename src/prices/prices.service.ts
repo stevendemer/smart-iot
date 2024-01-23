@@ -21,9 +21,6 @@ export class PricesService {
     private readonly dbService: DbService,
   ) {}
 
-  /**
-   * @returns the start and end period for the day ahead prices
-   */
   getDates() {
     const startOfDay = moment().startOf('day');
 
@@ -42,45 +39,20 @@ export class PricesService {
    * @returns the URL needed to fetch the day ahead prices (euro / mwh)
    */
   generateURL() {
-    // const { periodEnd, periodStart } = this.getDates();
-    // this.logger.log(`Period: ${periodStart} - ${periodEnd}`);
-
     const timeInterval = this.getTimeInterval();
 
     return `https://web-api.tp.entsoe.eu/api?documentType=A44&out_Domain=10YGR-HTSO-----Y&in_Domain=10YGR-HTSO-----Y&timeInterval=${timeInterval}&securityToken=${process.env.ENTSOE_API_TOKEN}`;
   }
 
-  printJSON(object: any) {
-    for (let key in object) {
-      if (typeof object[key] === 'object') {
-        this.printJSON(object[key]);
-      } else {
-        console.log(object[key]);
-      }
-    }
-  }
-
-  /**
-   *
-   * @param  hour - The hour in 24-hour format('24')
-   * @returns The digital clock format (01:00 AM) from the hour
-   * e.g 1 -> 01:00 AM
-   */
-
   formatHour(hourString: string) {
     return (hourString.length === 1 ? '0' : '') + hourString;
-
-    // const formattedHour = moment(hour, 'HH').format('hh:mm A');
-    // return formattedHour;
   }
 
   /**
-   *
-   * @returns The energy price (euro / kwh) for one day ahead
+   * Day-head prices
    */
   async getEnergyPrices() {
     const url = this.generateURL();
-    console.log(url);
 
     const { data, status } = await firstValueFrom(this.httpService.get(url));
 
@@ -135,12 +107,6 @@ export class PricesService {
         let hour = this.convertPositionToHour(item.position);
         const price = parseFloat(item['price.amount'][0]);
         let formatDate = moment(periodStart, 'YYYYMMDDHHmm');
-        // 'YYYY-MM-DD',
-        // );
-
-        // formatDate.format("YYYY-MM-DD");
-
-        // formatDate = formatDate.format('YYYY-MM-DD');
 
         await this.dbService.energyPrice
           .create({

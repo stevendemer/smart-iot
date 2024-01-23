@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { fetchWeatherApi } from 'openmeteo';
 import { DbService } from '../db/db.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * Fetches from openmeteo API the cloud cover, whether is day or not, the radiation values and current temperature.
@@ -11,7 +12,8 @@ import { DbService } from '../db/db.service';
 export class WeatherService {
   constructor(private readonly dbService: DbService) {}
 
-  async getDailyForecast() {
+  @Cron(CronExpression.EVERY_WEEK, { name: 'weather' })
+  async storeForecast() {
     const url = 'https://api.open-meteo.com/v1/forecast';
 
     // the default is a 7-day ahead forecast

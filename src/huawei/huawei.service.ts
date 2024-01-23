@@ -1,17 +1,11 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  ExecutionContext,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import * as moment from 'moment';
 import { ConfigService } from '@nestjs/config';
 import { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { firstValueFrom } from 'rxjs';
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * The returned token from the SmartPVMS has a TTL of 30 minutes
@@ -68,7 +62,6 @@ export class HuaweiService {
 
   /**
    * Five times every 10 minutes per user allowed
-   * @returns
    */
   async login() {
     const userName = this.configService.get<string>('HUAWEI_USERNAME');
@@ -124,13 +117,6 @@ export class HuaweiService {
     }
   }
 
-  async hello() {
-    return {
-      failCode: 0,
-      message: 'Hello from huawei',
-    };
-  }
-
   async getToken() {
     const username = this.configService.get<string>('HUAWEI_USERNAME');
     const { token, expiration } = await this.dbService.pVAccount.findFirst({
@@ -143,7 +129,7 @@ export class HuaweiService {
   }
 
   // Retrieve the real time data from the inverter
-  @Cron(CronExpression.EVERY_HOUR, { name: 'huawei' })
+  // @Cron(CronExpression.EVERY_HOUR, { name: 'huawei' })
   async storeDevRealTime() {
     try {
       const { data } = await firstValueFrom(

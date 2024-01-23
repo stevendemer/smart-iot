@@ -14,7 +14,6 @@ import { AuthModule } from './auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EvModule } from './ev/ev.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { AccessTokenGuard } from './auth/guards/at.guard';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -45,10 +44,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: AccessTokenGuard,
     },
   ],
 })

@@ -9,25 +9,29 @@ export class RTStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor() {
     // const secret = this.configService.get<string>('RT_SECRET');
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromBodyField('refresh'),
       secretOrKey: process.env.RT_SECRET,
       passReqToCallback: true,
     });
   }
 
-  validate(req: Request, payload: JwtPayload): JwtPayloadWithRt {
-    const refreshToken = req
-      ?.get('authorization')
-      ?.replace('Bearer', '')
-      .trim();
-
-    if (!refreshToken) {
-      throw new ForbiddenException('Refresh token malformed');
-    }
-
+  validate(payload: JwtPayload) {
     return {
-      ...payload,
-      refreshToken,
+      sub: payload.sub,
+      email: payload.email,
     };
+    // const refreshToken = req
+    //   ?.get('authorization')
+    //   ?.replace('Bearer', '')
+    //   .trim();
+
+    // if (!refreshToken) {
+    //   throw new ForbiddenException('Refresh token malformed');
+    // }
+
+    // return {
+    //   ...payload,
+    //   refreshToken,
+    // };
   }
 }

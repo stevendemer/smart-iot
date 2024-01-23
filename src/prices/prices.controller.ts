@@ -1,8 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { ApiTags } from '@nestjs/swagger';
 import * as moment from 'moment';
+import { AccessTokenGuard } from '../auth/guards/at.guard';
 
+@UseGuards(AccessTokenGuard)
 @ApiTags('prices')
 @Controller('prices')
 export class PricesController {
@@ -15,6 +17,7 @@ export class PricesController {
 
   @Get('/today')
   async getPricesForToday() {
+    await this.pricesService.storePrices();
     return await this.pricesService.findPricesForToday();
   }
 
@@ -33,14 +36,14 @@ export class PricesController {
     return await this.pricesService.findLowestPrice();
   }
 
-  @Get('/max-today')
+  @Get('/max/today')
   async getHighestToday() {
     const today = moment().format('YYYY-MM-DD');
 
     return await this.pricesService.findHighestPrice(today);
   }
 
-  @Get('/min-today')
+  @Get('/min/today')
   async getLowestToday() {
     const today = moment().format('YYYY-MM-DD');
 

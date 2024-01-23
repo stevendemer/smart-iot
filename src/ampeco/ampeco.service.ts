@@ -2,7 +2,6 @@ import { HttpService } from '@nestjs/axios';
 import {
   ForbiddenException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
   UnauthorizedException,
@@ -13,13 +12,10 @@ import { DbService } from '../db/db.service';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChargeSessionEvent } from 'src/events/charge-session.event';
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 
 @Injectable()
 export class AmpecoService {
   private logger = new Logger(AmpecoService.name);
-  // private chargePointId = 63205; // RENEL-IKE Thess
-  // private evseNetworkId = 1;
   private sessionId: string = '';
   private isCharging = false;
 
@@ -28,13 +24,11 @@ export class AmpecoService {
     private readonly dbService: DbService,
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly scheduler: SchedulerRegistry,
   ) {}
 
   /**
    *
    * @param chargePointId
-   * @param session
    */
   async stopChargingSession(chargePointId: number) {
     try {
@@ -47,9 +41,9 @@ export class AmpecoService {
 
       const { data, status } = await firstValueFrom(
         this.httpService
-          .get(
-            // `actions/charge-point/v1.0/${chargePointId}/stop/${this.sessionId}`,
-            'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/stop',
+          .post(
+            `actions/charge-point/v1.0/${chargePointId}/stop/${this.sessionId}`,
+            // 'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/stop',
             // {
             //   force: true,
             // },
@@ -104,6 +98,25 @@ export class AmpecoService {
     }
   }
 
+  async isCurrentlyCharging(id: number) {
+    try {
+      const { data, status } = await firstValueFrom(
+        this.httpService.get(`resources/charge-points/v1.0/${id}/status`),
+      );
+
+      const hardwareStatus = data.data['evses'][0]['hardwareStatus'];
+
+      if (hardwareStatus === 'charging') {
+        console.log('Charge point is charging');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
+  }
+
   /**
    * Start a charging session using the EVSE network ID / Charge point ID
    *
@@ -113,12 +126,11 @@ export class AmpecoService {
    */
   async startChargingSession(chargePointId: number, evseNetworkId: number) {
     try {
-      console.log('Started charging...');
       const { data, status } = await firstValueFrom(
         this.httpService
-          .get(
-            // `actions/charge-point/v1.0/${chargePointId}/start/${evseNetworkId}`,
-            `https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/start`,
+          .post(
+            `actions/charge-point/v1.0/${chargePointId}/start/${evseNetworkId}`,
+            // `https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/start`,
           )
           .pipe(
             catchError((error: AxiosError) => {
@@ -127,6 +139,13 @@ export class AmpecoService {
             }),
           ),
       );
+
+      if (status !== 202) {
+        return {
+          message: data.message,
+          success: false,
+        };
+      }
 
       this.isCharging = true;
       this.sessionId = data.sessionId;
@@ -153,7 +172,7 @@ export class AmpecoService {
   /**
    * Checks the hardware and network status of the charging point
    * @param id: charge point id
-   * @returns The hardwareStatus(string), the evses connected, and networkStatus(string) and the lastUpdatedAt (Date)
+   * @returns The hardwareStatus, the evses connected, and the networkStatus
    */
   async chargePointStatus(chargePointId: number) {
     try {
@@ -183,13 +202,15 @@ export class AmpecoService {
   async storeSessionInfo() {
     try {
       if (this.isCharging && this.sessionId) {
-        console.log('Inside store session info');
+        console.log('The session id is', this.sessionId);
 
         const { data, status } = await firstValueFrom(
           this.httpService
             .get(
+              process.env.AMPECO_BASE_URI +
+                `resources/sessions/v1.0/${this.sessionId}`,
               // `https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/session/${this.sessionId}`,
-              'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/new-session',
+              // 'https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/new-session',
             )
             .pipe(
               // this.httpService.get(`resources/sessions/v1.0/${sessionId}`).pipe(
@@ -202,6 +223,8 @@ export class AmpecoService {
 
         let resp = data.data;
 
+        console.log('The session object is ', resp);
+
         if (resp.status !== 'active') {
           const chargeSessionEvent = new ChargeSessionEvent();
           chargeSessionEvent.isCharging = false;
@@ -209,11 +232,11 @@ export class AmpecoService {
           this.eventEmitter.emit('charging.stopped', chargeSessionEvent);
           return {
             message: 'Charging has stopped',
-            success: false,
+            status: resp.status,
           };
         }
 
-        console.log('Session: ', resp);
+        console.log('Session status', resp.status);
 
         await this.dbService.ampecoSession.create({
           data: {

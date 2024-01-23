@@ -4,7 +4,6 @@ import { HttpModule } from '@nestjs/axios';
 import { HuaweiController } from './huawei.controller';
 import { TokenMiddleware } from './token.middleware';
 import { ConfigModule } from '@nestjs/config';
-import { DbModule } from '../db/db.module';
 import { TokenService } from './token.service';
 
 @Module({
