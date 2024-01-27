@@ -1,5 +1,10 @@
 import { HttpService } from '@nestjs/axios';
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import * as moment from 'moment';
 import { ConfigService } from '@nestjs/config';
@@ -12,7 +17,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
  * so we need to relogin when needed
  */
 @Injectable()
-export class HuaweiService {
+export class HuaweiService implements OnModuleInit {
   private logger: Logger = new Logger(HuaweiService.name);
   private token: string | null = null;
 
@@ -28,12 +33,16 @@ export class HuaweiService {
     this.token = token;
   }
 
+  async onModuleInit() {
+    await this.storeDevRealTime();
+  }
+
   private setupInterceptors() {
     let isLoginIn = false;
 
     this.httpService.axiosRef.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        console.log('Inside request config: ', this.token);
+        // console.log('Inside request config: ', this.token);
         config.headers['XSRF-TOKEN'] = this.token;
         return config;
       },
@@ -82,8 +91,8 @@ export class HuaweiService {
 
         this.setToken(token);
 
-        // the following query creates a new pvReading on the first login,
-        // else update the token and its expiration date
+        // the following query creates a new PVAccount if it's the first login,
+        // else updates the token and its expiration date
         await this.dbService.pVAccount.upsert({
           where: {
             username: userName,
@@ -129,16 +138,21 @@ export class HuaweiService {
   }
 
   // Retrieve the real time data from the inverter
-  // @Cron(CronExpression.EVERY_HOUR, { name: 'huawei' })
+  @Cron(CronExpression.EVERY_HOUR, { name: 'huawei' })
   async storeDevRealTime() {
     try {
       const { data } = await firstValueFrom(
-        this.httpService.get(
-          'https://4d27d917-df74-477d-a455-03c5b59ea163.mock.pstmn.io/thirdData/getDevRealKpi',
+        this.httpService.post(
+          // 'https://4d27d917-df74-477d-a455-03c5b59ea163.mock.pstmn.io/thirdData/getDevRealKpi',
+          'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi',
+          {
+            devIds: 'NE=36653898',
+            devTypeId: '1',
+          },
         ),
       );
 
-      if (data.success === false) {
+      if (data.success !== true) {
         return {
           message: 'Request failed',
           failCode: data.failCode,
@@ -155,6 +169,13 @@ export class HuaweiService {
 
       if (!account) {
         await this.login();
+      }
+
+      if (data.data === null) {
+        return {
+          message: 'Data is null',
+          code: data.failCode,
+        };
       }
 
       let itemMap = data.data[0]['dataItemMap'];

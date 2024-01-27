@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { parseString } from 'xml2js';
@@ -13,13 +14,18 @@ import { firstValueFrom } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
-export class PricesService {
+export class PricesService implements OnModuleInit {
   private logger = new Logger(PricesService.name);
 
   constructor(
     private readonly httpService: HttpService,
     private readonly dbService: DbService,
   ) {}
+
+  async onModuleInit() {
+    await this.dbService.energyPrice.deleteMany({});
+    await this.storePrices();
+  }
 
   getDates() {
     const startOfDay = moment().startOf('day');

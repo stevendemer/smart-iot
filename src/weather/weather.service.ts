@@ -1,16 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { fetchWeatherApi } from 'openmeteo';
 import { DbService } from '../db/db.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
- * Fetches from openmeteo API the cloud cover, whether is day or not, the radiation values and current temperature.
- * Latitude, longitude is set for the Mediterranean Cosmos
+ * Fetches from openmeteo API the cloud cover, whether is day or not, the radiation (direct, diffuse) values and the current temperature.
+ * Latitude, longitude is set for the Mediterranean Cosmos area
  */
 
 @Injectable()
-export class WeatherService {
+export class WeatherService implements OnModuleInit {
   constructor(private readonly dbService: DbService) {}
+
+  // populate the db with the weekly forecast
+  async onModuleInit() {
+    await this.dbService.weatherForecast.deleteMany({});
+    await this.storeForecast();
+  }
 
   @Cron(CronExpression.EVERY_WEEK, { name: 'weather' })
   async storeForecast() {

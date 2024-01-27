@@ -26,6 +26,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     // reading env variables
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env.local',
     }),
     CacheModule.register({
       isGlobal: true,
