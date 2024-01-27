@@ -9,8 +9,12 @@ import { HuaweiService } from './huawei/huawei.service';
 export class AppController {
   constructor() {}
 
-  @Get('prices')
+  @Get('hello')
   async getHello(): Promise<any> {
+    return {
+      message: 'Hello world',
+    };
+
     // await this.pricesService.storeJSONPrices();
     // await this.weatherService.getForecast();
     // const prices = await this.dbService.energyPrice.findMany({});

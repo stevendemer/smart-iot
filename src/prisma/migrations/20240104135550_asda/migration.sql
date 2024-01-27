@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "AmpecoSession" ALTER COLUMN "energy" SET DATA TYPE DOUBLE PRECISION;

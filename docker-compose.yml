@@ -3,9 +3,7 @@ version: '3.3'
 services:
   app:
     container_name: nest-api
-    volumes:
-      - ./backend:/usr/src/app
-      - ./backend:/usr/node_modules
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,17 +11,14 @@ services:
       - '5000:5000'
     depends_on:
       - postgres-db
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:5000/']
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
     networks:
       - renel-network
+    env_file:
+      - .env
 
   postgres-db:
     image: postgres:13
+    container_name: postgres
     ports:
       - '5432:5432'
     environment:
@@ -34,9 +29,12 @@ services:
       - postgres-db:/var/lib/postgresql/data
     networks:
       - renel-network
+    env_file:
+      - .env
 
   pgadmin4:
     image: dpage/pgadmin4
+    container_name: pgadmin4
     ports:
       - '5050:80'
     environment:

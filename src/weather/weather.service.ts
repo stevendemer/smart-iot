@@ -69,8 +69,6 @@ export class WeatherService {
       },
     };
 
-    console.log(JSON.stringify(weatherData, null, 2));
-
     for (let i = 0; i < weatherData.hourly.time.length; ++i) {
       await this.dbService.weatherForecast.create({
         data: {

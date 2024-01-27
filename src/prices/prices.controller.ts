@@ -17,7 +17,6 @@ export class PricesController {
 
   @Get('/today')
   async getPricesForToday() {
-    await this.pricesService.storePrices();
     return await this.pricesService.findPricesForToday();
   }
 

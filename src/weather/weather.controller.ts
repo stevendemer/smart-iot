@@ -1,5 +1,4 @@
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
-import { WeatherService } from './weather.service';
 import * as moment from 'moment';
 import { DbService } from '../db/db.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -37,8 +36,6 @@ export class WeatherController {
   @Get('/forecast/:date')
   async getForecastByDay(@Param('date') date: string) {
     const day = new Date(date).toISOString();
-
-    console.log(day);
 
     const forecast = await this.dbService.weatherForecast.findMany({
       where: {

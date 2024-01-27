@@ -1,18 +1,21 @@
-FROM node:lts-bookworm-slim
+FROM node:19.5.0-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /usr/app
 
-COPY package*.json ./
+COPY package*.json /usr/app
 
-RUN npm install -g npm@latest
-
-RUN npm cache clean --force
+COPY prisma /usr/app/prisma
 
 RUN npm install
 
-COPY  . . 
+COPY . . 
+
+RUN npx prisma generate --schema ./prisma/schema.prisma
+
+RUN npm run build
 
 EXPOSE 5000
 
-CMD ["npm", "run", "build"]
+CMD ["npm", "run", "start:prod"]
+
 
