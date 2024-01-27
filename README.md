@@ -67,11 +67,11 @@ $ npm run test:cov
 - Auth Module
 
 <p align="center">
-  The **weather** module consists of a single singleton that is responsible for retrieving the 7-day ahead weather forecast and storing in our database.
+  The <strong>weather</strong> module consists of a single singleton that is responsible for retrieving the 7-day ahead weather forecast and storing in our database.
 </p>
 
 <p align="center">
-  The **prices** module fetches the day-ahead prices from the ENTSOE API (EUR/MWH) once per day at 22:00 PM (UTC+2).
+  The <strong>prices</strong> module fetches the day-ahead prices from the ENTSOE API (EUR/MWH) once per day at 22:00 PM (UTC+2).
   Main functionalities are:
     - Parsing the XML document obtained from the ENTSOE API.
     - Extracting and processing only the attributes deemed relevant to our objectives.
