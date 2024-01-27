@@ -58,9 +58,20 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Support
+## Modules summary
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Weather Module
+- Prices Module
+- Ampeco Module
+- Huawei Module
+- Auth Module
+
+<p align="center">
+  The <strong>weather</strong> module consists of a single singleton that is responsible for retrieving the 7-day ahead weather forecast and storing in our database. 
+  The <strong>prices</strong> module fetches the day-ahead prices from the ENTSOE API (EUR/MWH) every day at 22:00 PM (UTC+2).
+</p>
+  
+
 
 ## Stay in touch
 
