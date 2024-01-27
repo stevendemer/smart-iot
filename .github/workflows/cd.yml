@@ -20,5 +20,6 @@ jobs:
             cd /home/steven/smart-iot
             git pull origin main
             git status
-            npm i --only=prod
+            npm i 
+            npm run build 
             pm2 restart main
