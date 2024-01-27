@@ -290,6 +290,21 @@ export class PricesService implements OnModuleInit {
     return await this.dbService.energyPrice.findMany({});
   }
 
+  // Get the average price for a specified date, limited to take
+  async findAvgPrice(date: string, take?: number) {
+    const aggregations = await this.dbService.energyPrice.aggregate({
+      _avg: {
+        price: true,
+      },
+      where: {
+        date,
+      },
+      take: take || undefined,
+    });
+
+    return aggregations._avg.price.toFixed(4);
+  }
+
   async findLowestPrice(date?: string) {
     try {
       if (date) {
@@ -318,6 +333,23 @@ export class PricesService implements OnModuleInit {
       this.logger.error(error);
       throw error;
     }
+  }
+
+  async findPriceForDate(date: string, skip?: number) {
+    const prices = await this.dbService.energyPrice.findMany({
+      where: {
+        date,
+      },
+      skip: skip || undefined,
+      select: {
+        date: true,
+        hour: true,
+        price: true,
+        createdAt: true,
+      },
+    });
+
+    return prices;
   }
 
   getTimeInterval(startDate?: string, endDate?: string) {

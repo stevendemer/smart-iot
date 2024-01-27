@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { ApiTags } from '@nestjs/swagger';
 import * as moment from 'moment';
@@ -21,12 +21,23 @@ export class PricesController {
     return await this.pricesService.findPricesForToday();
   }
 
+  @Get('/:date')
+  async getPricesDate(@Param('date') date: string) {
+    const prices = await this.pricesService.findPriceForDate(date);
+    return prices;
+  }
+
   @Get('/max')
   async getHighestPrice() {
     return await this.pricesService.findHighestPrice();
   }
 
-  @Get('/all')
+  @Get('/avg/:date')
+  async getAvgPrice(@Param('date') date: string) {
+    return await this.pricesService.findAvgPrice(date);
+  }
+
+  @Get('')
   async getAllPrices() {
     return await this.pricesService.getAllPrices();
   }
