@@ -80,7 +80,7 @@ export class PricesService implements OnModuleInit {
   }
 
   convertPositionToHour(position: any) {
-    const hour = parseInt(position[0]) - 1;
+    const hour = parseInt(position[0]);
     return hour < 10 ? `0${hour}:00` : `${hour}:00`;
   }
 
@@ -109,23 +109,21 @@ export class PricesService implements OnModuleInit {
 
       const nextDayPrices = timeSeriesArray[1]?.Period?.[0]?.Point || [];
 
+      const promises: Promise<any>[] = [];
+
       todayPrices.map(async (item) => {
         let hour = this.convertPositionToHour(item.position);
         const price = parseFloat(item['price.amount'][0]);
         let formatDate = moment(periodStart, 'YYYYMMDDHHmm');
 
-        await this.dbService.energyPrice
-          .create({
-            data: {
-              date: formatDate.format('YYYY-MM-DD'),
-              hour,
-              price,
-            },
-          })
-          .catch((error) => {
-            this.logger.error(error);
-            throw error;
-          });
+        const pro1 = this.dbService.energyPrice.create({
+          data: {
+            date: formatDate.format('YYYY-MM-DD'),
+            hour,
+            price,
+          },
+        });
+        promises.push(pro1);
       });
 
       nextDayPrices.map(async (item) => {
@@ -136,18 +134,20 @@ export class PricesService implements OnModuleInit {
           'YYYY-MM-DD',
         );
 
-        await this.dbService.energyPrice
-          .create({
-            data: {
-              date: formatDate,
-              hour,
-              price,
-            },
-          })
-          .catch((error) => {
-            this.logger.error(error);
-            throw error;
-          });
+        const pro2 = this.dbService.energyPrice.create({
+          data: {
+            date: formatDate,
+            hour,
+            price,
+          },
+        });
+
+        promises.push(pro2);
+      });
+
+      await Promise.all(promises).catch((error) => {
+        this.logger.error(error);
+        throw error;
       });
     });
   }
