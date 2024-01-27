@@ -231,6 +231,11 @@ export class PricesService implements OnModuleInit {
           date,
           hour,
         },
+        select: {
+          price: true,
+          hour: true,
+          date: true,
+        },
       });
     } catch (error) {
       this.logger.error(error);
@@ -246,6 +251,11 @@ export class PricesService implements OnModuleInit {
       return await this.dbService.energyPrice.findMany({
         where: {
           date,
+        },
+        select: {
+          date: true,
+          hour: true,
+          price: true,
         },
       });
     } catch (error) {
@@ -265,6 +275,8 @@ export class PricesService implements OnModuleInit {
           },
           select: {
             price: true,
+            date: true,
+            hour: true,
           },
           orderBy: {
             price: 'desc',
@@ -314,6 +326,8 @@ export class PricesService implements OnModuleInit {
           },
           select: {
             price: true,
+            hour: true,
+            date: true,
           },
           orderBy: {
             price: 'asc',
@@ -324,6 +338,8 @@ export class PricesService implements OnModuleInit {
       return await this.dbService.energyPrice.findFirst({
         select: {
           price: true,
+          hour: true,
+          date: true,
         },
         orderBy: {
           price: 'asc',
@@ -345,7 +361,6 @@ export class PricesService implements OnModuleInit {
         date: true,
         hour: true,
         price: true,
-        createdAt: true,
       },
     });
 
