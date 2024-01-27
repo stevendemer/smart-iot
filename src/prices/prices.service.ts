@@ -7,7 +7,7 @@ import {
   OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
-import { parseString } from 'xml2js';
+import { parseString, parseStringPromise } from 'xml2js';
 import { DbService } from '../db/db.service';
 import * as moment from 'moment';
 import { firstValueFrom } from 'rxjs';
@@ -59,29 +59,83 @@ export class PricesService implements OnModuleInit {
    */
   async getEnergyPrices() {
     const url = this.generateURL();
+    let error = new Error();
 
-    const { data, status } = await firstValueFrom(this.httpService.get(url));
+    try {
+      const { data, status } = await firstValueFrom(this.httpService.get(url));
 
-    if (status === 401) {
-      throw new UnauthorizedException('Missing or invalid ENTSOE token');
-    }
-    if (status === 400) {
-      throw new BadRequestException('Invalid query attributes or parameters');
-    }
-    if (status === 409) {
-      throw new InternalServerErrorException(
-        'Too many requests - max allowed 400 per minute',
-      );
-    }
+      if (status === 200) {
+        return {
+          document: data,
+        };
+      }
 
-    return {
-      prices: data,
-    };
+      if (status === 401) {
+        error.message = await this.unauthorizedTR(data);
+      }
+      if (status === 400) {
+        const json = await this.badRequestTR(data);
+        error.message = json.message + ' - ' + json.code;
+      }
+      if (status === 409) {
+        error.message =
+          'Too many requests - max allowed 400 per minute from each unique IP';
+      }
+
+      throw error;
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
   }
 
   convertPositionToHour(position: any) {
     const hour = parseInt(position[0]);
-    return hour < 10 ? `0${hour}:00` : `${hour}:00`;
+
+    if (hour < 10) {
+      return `0${hour}:00`;
+    } else if (hour === 24) {
+      return '00:00';
+    } else {
+      return `${hour}:00`;
+    }
+  }
+
+  async dayAheadPriceTR(data) {
+    const json = await parseStringPromise(data);
+
+    const document = json.Publication_MarketDocument;
+
+    const tsArray = document.TimeSeries.map((ts) => ({
+      period: {
+        timeInterval: {
+          start: ts.Period[0].timeInterval[0].start[0],
+          end: ts.Period[0].timeInterval[0].end[0],
+        },
+        point: ts.Period[0].Point.map((po) => ({
+          position: parseInt(po.position[0], 10),
+          priceAmount: parseFloat(po['price.amount'][0]),
+        })),
+      },
+    }));
+
+    return tsArray;
+  }
+
+  async badRequestTR(data: any) {
+    const json = await parseStringPromise(data);
+    const document = json.Acknowledgement_MarketDocument.Reason[0];
+
+    return {
+      code: document.code[0],
+      message: document.text[0],
+    };
+  }
+
+  async unauthorizedTR(data: any) {
+    const json = await parseStringPromise(data);
+
+    return json.html.body[0];
   }
 
   /**
@@ -89,9 +143,13 @@ export class PricesService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_DAY_AT_10PM, { name: 'prices' })
   async storePrices() {
-    const { prices } = await this.getEnergyPrices();
+    const { document } = await this.getEnergyPrices();
 
-    parseString(prices, async (error, result: any) => {
+    const array = await this.dayAheadPriceTR(document);
+
+    console.log('array is ', JSON.stringify(array, null, 2));
+
+    parseString(document, async (error, result: any) => {
       if (error) {
         this.logger.error(
           `Parsing XML error: ${error.message} - stack: ${error.stack}`,
@@ -116,6 +174,13 @@ export class PricesService implements OnModuleInit {
         const price = parseFloat(item['price.amount'][0]);
         let formatDate = moment(periodStart, 'YYYYMMDDHHmm');
 
+        if (hour.startsWith('00')) {
+          // day has changed
+          formatDate.add(1, 'day');
+        }
+
+        console.log('Hour is ', hour);
+
         const pro1 = this.dbService.energyPrice.create({
           data: {
             date: formatDate.format('YYYY-MM-DD'),
@@ -130,13 +195,16 @@ export class PricesService implements OnModuleInit {
         const hour = this.convertPositionToHour(item.position);
         const price = parseFloat(item['price.amount'][0]);
 
-        const formatDate = moment(periodEnd, 'YYYYMMDDHHmm').format(
-          'YYYY-MM-DD',
-        );
+        const formatDate = moment(periodEnd, 'YYYYMMDDHHmm');
+
+        if (hour.startsWith('00')) {
+          // day has changed
+          formatDate.add(1, 'day');
+        }
 
         const pro2 = this.dbService.energyPrice.create({
           data: {
-            date: formatDate,
+            date: formatDate.format('YYYY-MM-DD'),
             hour,
             price,
           },

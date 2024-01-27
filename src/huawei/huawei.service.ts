@@ -34,7 +34,7 @@ export class HuaweiService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.storeDevRealTime();
+    // await this.storeDevRealTime();
   }
 
   private setupInterceptors() {
