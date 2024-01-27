@@ -111,7 +111,7 @@ export class PricesService implements OnModuleInit {
 
       todayPrices.map(async (item) => {
         let hour = this.convertPositionToHour(item.position);
-        const price = parseFloat(item['price.amount'][0]);
+        const price = parseFloat(item['price.amount'][0]) / 1000;
         let formatDate = moment(periodStart, 'YYYYMMDDHHmm');
 
         await this.dbService.energyPrice
@@ -130,7 +130,7 @@ export class PricesService implements OnModuleInit {
 
       nextDayPrices.map(async (item) => {
         const hour = this.convertPositionToHour(item.position);
-        const price = parseFloat(item['price.amount'][0]);
+        const price = parseFloat(item['price.amount'][0]) / 1000;
 
         const formatDate = moment(periodEnd, 'YYYYMMDDHHmm').format(
           'YYYY-MM-DD',

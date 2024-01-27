@@ -37,7 +37,7 @@ model WeatherForecast {
 
 model EnergyPrice {
   id    Int     @id @default(autoincrement())
-  price Decimal @db.Decimal(10, 4)
+  price Decimal @default(0)
   date  String
   hour  String
 

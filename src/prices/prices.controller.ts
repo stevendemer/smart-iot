@@ -12,6 +12,7 @@ export class PricesController {
 
   @Get('/now')
   async getPrice() {
+    await this.pricesService.storePrices();
     return await this.pricesService.findCurrentHourPrice();
   }
 
