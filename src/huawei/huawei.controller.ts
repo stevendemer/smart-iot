@@ -4,19 +4,21 @@ import {
   HttpCode,
   Inject,
   Post,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { HuaweiService } from './huawei.service';
 import {
   CACHE_MANAGER,
-  CacheKey,
   CacheTTL,
   CacheInterceptor,
 } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
+import { AccessTokenGuard } from '../auth/guards/at.guard';
 
+@UseGuards(AccessTokenGuard)
 @ApiTags('huawei')
 @Controller('huawei')
 export class HuaweiController {

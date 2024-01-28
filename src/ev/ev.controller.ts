@@ -6,12 +6,21 @@ import {
   HttpStatus,
   Logger,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import { EVDto } from './dto/ev.dto';
 import { AmpecoService } from '../ampeco/ampeco.service';
-import { ChargeSessionEvent } from '../events/charge-session.event';
+import { ChargeSessionEvent } from '../notifications/charge-session.event';
+import { AccessTokenGuard } from '../auth/guards/at.guard';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
+/**
+ * TODO: When a user posts from the form, check if the charger is working, else start the polling
+ *
+ */
+
+@UseGuards(AccessTokenGuard)
 @Controller('ev')
 export class EvController {
   private logger = new Logger(EvController.name);
@@ -21,8 +30,13 @@ export class EvController {
   constructor(
     private readonly dbService: DbService,
     private readonly ampecoService: AmpecoService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
+  /**
+   * Retrieve the user input from the MMS form
+   * @param body
+   */
   @Post('/readings')
   @HttpCode(HttpStatus.CREATED)
   async postEVInfo(@Body() body: EVDto) {
@@ -43,21 +57,23 @@ export class EvController {
         },
       });
 
-      const chargingStatus = await this.ampecoService.isCurrentlyCharging(
+      const isCharging = await this.ampecoService.isCurrentlyCharging(
         this.chargePointId,
       );
 
-      const sessionEvent = new ChargeSessionEvent();
-      sessionEvent.isCharging = chargingStatus;
-      // sessionEvent.sessionId =
+      if (isCharging) {
+        return {
+          message:
+            'The charge station: ' + this.chargePointId + ' is unavailable',
+        };
+      }
 
-      // check if the charging has started, and store the session info
+      // trigger the cron job for storing the session info
+      this.eventEmitter.emit('charging.started', new ChargeSessionEvent(true));
 
-      // start the charging session
-      // return await this.ampecoService.startChargingSession(
-      //   this.chargePointId,
-      //   this.evseNetworkId,
-      // );
+      return {
+        message: 'You can charge your vehicle !',
+      };
     } catch (error) {
       this.logger.error(error);
       throw error;

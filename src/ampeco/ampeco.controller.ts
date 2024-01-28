@@ -54,6 +54,6 @@ export class AmpecoController {
 
   @Get('/sessions')
   async findAllSessions() {
-    return this.ampecoService.getAllSessions();
+    return this.ampecoService.getStoredSessions();
   }
 }

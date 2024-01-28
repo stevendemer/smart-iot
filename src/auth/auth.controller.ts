@@ -40,12 +40,7 @@ export class AuthController {
   @UseGuards(RefreshTokenGuard)
   @Post('/refresh')
   @HttpCode(HttpStatus.OK)
-  refreshTokens(
-    // @GetCurrentUserId() userId: number,
-    // @GetCurrentUser('refreshToken') refreshToken: string,
-    @Request() req,
-  ): Promise<Tokens> {
-    // return this.authService.refreshTokens(userId, refreshToken);
+  refreshTokens(@Request() req): Promise<Tokens> {
     return this.authService.refreshToken(req.user);
   }
 }

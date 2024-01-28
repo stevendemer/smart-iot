@@ -6,6 +6,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ResponseInterceptor } from './response-interceptor';
 import * as session from 'express-session';
 import * as passport from 'passport';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,11 +21,12 @@ async function bootstrap() {
 
   app.use(passport.initialize());
   app.use(passport.session());
+  app.use(helmet());
 
   const port = process.env.PORT || 5000;
 
   const config = new DocumentBuilder()
-    .setTitle('Smart IOT API')
+    .setTitle('Smart Site API')
     .setVersion('1.0')
     .build();
 

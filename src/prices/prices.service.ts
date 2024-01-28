@@ -42,7 +42,7 @@ export class PricesService implements OnModuleInit {
 
   /**
    *
-   * @returns the URL needed to fetch the day ahead prices (euro / mwh)
+   * @returns the URL needed to fetch the day ahead prices (euro / kwh)
    */
   generateURL() {
     const timeInterval = this.getTimeInterval();
@@ -145,9 +145,9 @@ export class PricesService implements OnModuleInit {
   async storePrices() {
     const { document } = await this.getEnergyPrices();
 
-    const array = await this.dayAheadPriceTR(document);
+    // const array = await this.dayAheadPriceTR(document);
 
-    console.log('array is ', JSON.stringify(array, null, 2));
+    // console.log('array is ', JSON.stringify(array, null, 2));
 
     parseString(document, async (error, result: any) => {
       if (error) {
@@ -171,7 +171,7 @@ export class PricesService implements OnModuleInit {
 
       todayPrices.map(async (item) => {
         let hour = this.convertPositionToHour(item.position);
-        const price = parseFloat(item['price.amount'][0]);
+        const price = parseFloat(item['price.amount'][0]) / 1000;
         let formatDate = moment(periodStart, 'YYYYMMDDHHmm');
 
         if (hour.startsWith('00')) {
@@ -193,7 +193,7 @@ export class PricesService implements OnModuleInit {
 
       nextDayPrices.map(async (item) => {
         const hour = this.convertPositionToHour(item.position);
-        const price = parseFloat(item['price.amount'][0]);
+        const price = parseFloat(item['price.amount'][0]) / 1000;
 
         const formatDate = moment(periodEnd, 'YYYYMMDDHHmm');
 
@@ -299,7 +299,13 @@ export class PricesService implements OnModuleInit {
   }
 
   async getAllPrices() {
-    return await this.dbService.energyPrice.findMany({});
+    return await this.dbService.energyPrice.findMany({
+      select: {
+        price: true,
+        hour: true,
+        date: true,
+      },
+    });
   }
 
   // Get the average price for a specified date, limited to take

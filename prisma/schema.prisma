@@ -37,7 +37,7 @@ model WeatherForecast {
 
 model EnergyPrice {
   id    Int     @id @default(autoincrement())
-  price Decimal @default(0)
+  price Decimal @db.Decimal(8, 4)
   date  String
   hour  String
 
@@ -83,15 +83,15 @@ model PVReading {
 model AmpecoSession {
   id Int @id @default(autoincrement())
 
-  chargePointId String
+  chargePointId Int
 
-  evseId String
+  evseId Int
 
   sessionId Int
 
-  startedAt DateTime
+  startedAt String
 
-  stoppedAt DateTime
+  stoppedAt String?
 
   // total amount of electricity consumed
   energy Float
@@ -100,7 +100,7 @@ model AmpecoSession {
   powerKw Int
 
   // state of charge percent (current battery charge leve)
-  socPercent Float
+  socPercent Float?
 
   // cost during the charging session
   electricityCost Float

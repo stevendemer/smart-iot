@@ -1,7 +1,6 @@
 import {
   ForbiddenException,
   Injectable,
-  ExceptionFilter,
   NotFoundException,
 } from '@nestjs/common';
 import { DbService } from '../db/db.service';
@@ -35,7 +34,7 @@ export class AuthService {
     return {
       ...payload,
       access_token: this.jwtService.sign(payload, {
-        expiresIn: '1h',
+        expiresIn: '12h',
         secret: process.env.AT_SECRET,
       }),
       refresh_token: this.jwtService.sign(payload, {
@@ -102,55 +101,6 @@ export class AuthService {
     return tokens;
   }
 
-  // async login(dto: AuthDto): Promise<Tokens> {
-  //   const user = await this.dbService.user.findUnique({
-  //     where: {
-  //       email: dto.email,
-  //     },
-  //   });
-
-  //   if (!user) {
-  //     throw new ForbiddenException('Access denied');
-  //   }
-
-  //   const passwordMatches = await argon2.verify(user.hash, dto.password);
-
-  //   if (!passwordMatches) {
-  //     throw new ForbiddenException('Access denied');
-  //   }
-
-  //   const tokens = await this.getTokens(user.id, user.email);
-
-  //   await this.updateRtHash(user.id, tokens.refresh_token);
-
-  //   return tokens;
-  // }
-
-  // async refreshTokens(userId: number, rt: string): Promise<Tokens> {
-  //   console.log('Inside refresh tokens');
-  //   const user = await this.dbService.user.findUnique({
-  //     where: {
-  //       id: userId,
-  //     },
-  //   });
-
-  //   if (!user || !user.hashedRt) {
-  //     throw new ForbiddenException('Access denied');
-  //   }
-
-  //   const rtMatches = await argon2.verify(user.hashedRt, rt);
-
-  //   if (!rtMatches) {
-  //     throw new ForbiddenException('Access denied');
-  //   }
-
-  //   const tokens = await this.getTokens(user.id, user.email);
-
-  //   await this.updateRtHash(user.id, tokens.refresh_token);
-
-  //   return tokens;
-  // }
-
   async refreshToken(user: User) {
     const payload = {
       email: user.email,
@@ -159,7 +109,7 @@ export class AuthService {
     return {
       ...payload,
       access_token: this.jwtService.sign(payload, {
-        expiresIn: '1h',
+        expiresIn: '12h',
         secret: process.env.AT_SECRET,
       }),
       refresh_token: this.jwtService.sign(payload, {
@@ -191,7 +141,7 @@ export class AuthService {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(jwtPayload, {
         secret: this.configService.get<string>('AT_SECRET'),
-        expiresIn: '1h',
+        expiresIn: '12h',
       }),
       this.jwtService.signAsync(jwtPayload, {
         secret: this.configService.get<string>('RT_SECRET'),

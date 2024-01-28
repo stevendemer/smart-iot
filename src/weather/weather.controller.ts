@@ -1,8 +1,16 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import * as moment from 'moment';
 import { DbService } from '../db/db.service';
 import { ApiTags } from '@nestjs/swagger';
+import { AccessTokenGuard } from '../auth/guards/at.guard';
 
+@UseGuards(AccessTokenGuard)
 @ApiTags('weather')
 @Controller('weather')
 export class WeatherController {

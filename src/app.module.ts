@@ -1,4 +1,4 @@
-import { ChargeListener } from './events/charge.listener';
+import { SessionListener } from './events/session.listener';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -15,6 +15,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { EvModule } from './ev/ev.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -37,10 +38,11 @@ import { ScheduleModule } from '@nestjs/schedule';
     AuthModule,
     EvModule,
     AuthModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
-    ChargeListener,
+    SessionListener,
     AppService,
     {
       provide: APP_FILTER,
