@@ -12,19 +12,13 @@ export class PricesController {
 
   @Get('/now')
   async getPrice() {
-    await this.pricesService.storePrices();
+    // await this.pricesService.storePrices();
     return await this.pricesService.findCurrentHourPrice();
   }
 
   @Get('/today')
   async getPricesForToday() {
     return await this.pricesService.findPricesForToday();
-  }
-
-  @Get('/:date')
-  async getPricesDate(@Param('date') date: string) {
-    const prices = await this.pricesService.findPriceForDate(date);
-    return prices;
   }
 
   @Get('/max')
@@ -47,17 +41,23 @@ export class PricesController {
     return await this.pricesService.findLowestPrice();
   }
 
-  @Get('/max/today')
+  @Get('/today/max')
   async getHighestToday() {
     const today = moment().format('YYYY-MM-DD');
 
     return await this.pricesService.findHighestPrice(today);
   }
 
-  @Get('/min/today')
+  @Get('/today/min')
   async getLowestToday() {
     const today = moment().format('YYYY-MM-DD');
 
     return await this.pricesService.findLowestPrice(today);
+  }
+
+  @Get('/:date')
+  async getPricesDate(@Param('date') date: string) {
+    const prices = await this.pricesService.findPriceForDate(date);
+    return prices;
   }
 }
