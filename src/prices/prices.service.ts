@@ -23,8 +23,8 @@ export class PricesService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.dbService.energyPrice.deleteMany({});
-    await this.storePrices();
+    // await this.dbService.energyPrice.deleteMany({});
+    // await this.storePrices();
   }
 
   getDates() {
@@ -141,7 +141,7 @@ export class PricesService implements OnModuleInit {
   /**
    * Gets the XML response, parses it and stores it in the database
    */
-  @Cron(CronExpression.EVERY_DAY_AT_10PM, { name: 'prices' })
+  // @Cron(CronExpression.EVERY_DAY_AT_10PM, { name: 'prices' })
   async storePrices() {
     const { document } = await this.getEnergyPrices();
 
@@ -179,8 +179,6 @@ export class PricesService implements OnModuleInit {
           formatDate.add(1, 'day');
         }
 
-        console.log('Hour is ', hour);
-
         const pro1 = this.dbService.energyPrice.create({
           data: {
             date: formatDate.format('YYYY-MM-DD'),
@@ -213,7 +211,7 @@ export class PricesService implements OnModuleInit {
         promises.push(pro2);
       });
 
-      await Promise.all(promises).catch((error) => {
+      await Promise.allSettled(promises).catch((error) => {
         this.logger.error(error);
         throw error;
       });

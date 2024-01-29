@@ -16,7 +16,7 @@ import { AccessTokenGuard } from '../auth/guards/at.guard';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /**
- * TODO: When a user posts from the form, check if the charger is working, else start the polling
+ * TODO: When a user posts from the form, check if the charger is working, else trigger the session jobs
  *
  */
 

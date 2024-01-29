@@ -1,71 +1,65 @@
 import { Injectable } from '@nestjs/common';
-import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
+import { OnEvent } from '@nestjs/event-emitter';
 import { AmpecoService } from 'src/ampeco/ampeco.service';
-import { DbService } from 'src/db/db.service';
-import { ChargeSessionEvent } from '../notifications/charge-session.event';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SchedulerRegistry } from '@nestjs/schedule';
 
+/**
+ * Handles scheduling logic related to the session storing functionality
+ * Whenever the API retrieves the POST request from the form (MMS) an event is triggered
+ * called 'charging.started', if no active charging session is found from the Ampeco response (user has not plugged his EV)
+ * the service retries for 3 times in the span of 15 minutes when it finally stops the cron job.
+ */
 @Injectable()
 export class NotificationsService {
   private runCron = false;
+  private retries = 0;
+  private readonly maxRetries = 3;
 
   constructor(
     private readonly ampecoService: AmpecoService,
-    private readonly dbService: DbService,
     private scheduler: SchedulerRegistry,
   ) {}
 
-  //   @OnEvent('charging.started')
-  @Cron(CronExpression.EVERY_10_SECONDS, { name: 'ampeco' })
+  @Cron(CronExpression.EVERY_HOUR, { name: 'ampeco' })
   async storeSession() {
-    // store the data in the database
-    // const {
-    //   amount,
-    //   energy,
-    //   powerKw,
-    //   socPercent,
-    //   sessionId,
-    //   electricityCost,
-    //   startedAt,
-    //   stoppedAt,
-    //   evseId,
-    //   chargePointId,
-    // } = event.payload;
-
-    // await this.dbService.ampecoSession.create({
-    //   data: {
-    //     amount,
-    //     energy,
-    //     powerKw,
-    //     socPercent,
-    //     electricityCost,
-    //     startedAt,
-    //     stoppedAt,
-    //     chargePointId,
-    //     evseId,
-    //     sessionId,
-    //   },
-    // });
-
     if (this.runCron) {
-      await this.ampecoService.readSessionInfo();
-
       console.log('Inside session cron job');
-    }
+      const res = await this.ampecoService.readSessionInfo();
 
-    // console.log('Session info stored');
+      console.log(res);
+
+      if (!res) {
+        await this.handleRetries();
+      }
+    }
+  }
+
+  async handleRetries() {
+    const delaySeconds = 5 * 60; // 5 minutes delay
+
+    if (this.retries < this.maxRetries && this.runCron) {
+      console.log(`${this.retries} try for storeSession`);
+      this.retries++;
+
+      await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+
+      // retry the job
+      await this.storeSession();
+    } else {
+      console.error('Max tries reached. Giving up on storeSession...');
+      this.stopStoring();
+    }
   }
 
   @OnEvent('charging.stopped')
   async stopStoring() {
-    if (this.runCron) {
-      this.runCron = false;
-      const job = this.scheduler.getCronJob('ampeco');
-      if (job.running) {
-        job.stop();
-        console.log('Ampeco job stopped');
-      }
+    this.runCron = false;
+    this.retries = 0;
+    const job = this.scheduler.getCronJob('ampeco');
+    if (job.running) {
+      job.stop();
+      console.log('Session job stopped');
     }
   }
 

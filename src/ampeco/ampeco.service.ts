@@ -105,7 +105,7 @@ export class AmpecoService {
       const hardwareStatus = data.data['evses'][0]['hardwareStatus'];
 
       if (hardwareStatus === 'charging') {
-        console.log('Charge point is charging');
+        console.log(`Point: ${id} is charging`);
         return true;
       }
       return false;
@@ -329,13 +329,15 @@ export class AmpecoService {
         });
 
         console.log('Session info stored');
+        return true;
       } else {
-        this.eventEmitter.emit(
-          'charging.stopped',
-          new ChargeSessionEvent(false),
-        );
+        // this.eventEmitter.emit(
+        //   'charging.stopped',
+        //   new ChargeSessionEvent(false),
+        // );
 
         console.log('No active session found');
+        return false;
       }
     } catch (error) {
       this.logger.error(error);
