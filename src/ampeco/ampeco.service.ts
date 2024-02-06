@@ -1,5 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -255,7 +256,7 @@ export class AmpecoService {
       }
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new BadRequestException(error);
     }
   }
 

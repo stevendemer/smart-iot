@@ -32,13 +32,10 @@ export class AuthService {
     };
 
     return {
-      ...payload,
       access_token: this.jwtService.sign(payload, {
-        expiresIn: '12h',
         secret: process.env.AT_SECRET,
       }),
       refresh_token: this.jwtService.sign(payload, {
-        expiresIn: '7d',
         secret: process.env.RT_SECRET,
       }),
     };
@@ -109,11 +106,9 @@ export class AuthService {
     return {
       ...payload,
       access_token: this.jwtService.sign(payload, {
-        expiresIn: '12h',
         secret: process.env.AT_SECRET,
       }),
       refresh_token: this.jwtService.sign(payload, {
-        expiresIn: '7d',
         secret: process.env.RT_SECRET,
       }),
     };
@@ -141,11 +136,9 @@ export class AuthService {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(jwtPayload, {
         secret: this.configService.get<string>('AT_SECRET'),
-        expiresIn: '12h',
       }),
       this.jwtService.signAsync(jwtPayload, {
         secret: this.configService.get<string>('RT_SECRET'),
-        expiresIn: '7d',
       }),
     ]);
 

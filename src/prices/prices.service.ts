@@ -12,6 +12,7 @@ import { DbService } from '../db/db.service';
 import * as moment from 'moment';
 import { firstValueFrom } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { AxiosError } from 'axios';
 
 @Injectable()
 export class PricesService implements OnModuleInit {
@@ -23,8 +24,8 @@ export class PricesService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // await this.dbService.energyPrice.deleteMany({});
-    // await this.storePrices();
+    await this.dbService.energyPrice.deleteMany({});
+    await this.storePrices();
   }
 
   getDates() {
@@ -141,7 +142,7 @@ export class PricesService implements OnModuleInit {
   /**
    * Gets the XML response, parses it and stores it in the database
    */
-  // @Cron(CronExpression.EVERY_DAY_AT_10PM, { name: 'prices' })
+  @Cron(CronExpression.EVERY_DAY_AT_10PM, { name: 'prices' })
   async storePrices() {
     const { document } = await this.getEnergyPrices();
 
@@ -169,7 +170,7 @@ export class PricesService implements OnModuleInit {
 
       const promises: Promise<any>[] = [];
 
-      todayPrices.map(async (item) => {
+      for (const item of todayPrices) {
         let hour = this.convertPositionToHour(item.position);
         const price = parseFloat(item['price.amount'][0]) / 1000;
         let formatDate = moment(periodStart, 'YYYYMMDDHHmm');
@@ -187,9 +188,9 @@ export class PricesService implements OnModuleInit {
           },
         });
         promises.push(pro1);
-      });
+      }
 
-      nextDayPrices.map(async (item) => {
+      for (const item of nextDayPrices) {
         const hour = this.convertPositionToHour(item.position);
         const price = parseFloat(item['price.amount'][0]) / 1000;
 
@@ -209,11 +210,11 @@ export class PricesService implements OnModuleInit {
         });
 
         promises.push(pro2);
-      });
+      }
 
       await Promise.allSettled(promises).catch((error) => {
         this.logger.error(error);
-        throw error;
+        throw new BadRequestException('Error retrieving the prices', error);
       });
     });
   }
@@ -254,6 +255,9 @@ export class PricesService implements OnModuleInit {
           date: true,
           hour: true,
           price: true,
+        },
+        orderBy: {
+          hour: 'asc',
         },
       });
     } catch (error) {
@@ -302,6 +306,9 @@ export class PricesService implements OnModuleInit {
         price: true,
         hour: true,
         date: true,
+      },
+      orderBy: {
+        date: 'asc',
       },
     });
   }

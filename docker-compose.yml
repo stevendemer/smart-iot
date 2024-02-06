@@ -1,20 +1,20 @@
 version: '3.3'
 
 services:
-  app:
-    container_name: nest-api
-    restart: always
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - '5000:5000'
-    depends_on:
-      - postgres-db
-    networks:
-      - renel-network
-    env_file:
-      - .env
+  # app:
+  #   container_name: nest-api
+  #   restart: always
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - '5000:5000'
+  #   depends_on:
+  #     - postgres-db
+  #   networks:
+  #     - renel-network
+  #   env_file:
+  #     - .env
 
   postgres-db:
     image: postgres:13

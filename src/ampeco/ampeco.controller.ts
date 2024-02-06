@@ -25,9 +25,6 @@ export class AmpecoController {
 
   @Post('/stop/:id')
   async stopCharging(@Param('id') id: number) {
-    // let chargePointId = 63205; // RENEL-IKE Thess
-    // let evseNetworkId = 1;
-
     return await this.ampecoService.stopChargingSession(id);
   }
 
@@ -36,15 +33,11 @@ export class AmpecoController {
     @Param('id') id: number,
     @Param('evseId') evseId: number,
   ) {
-    // let chargePointId = 63205; // RENEL-IKE Thess
-    // let evseNetworkId = 1;
-
     return await this.ampecoService.startChargingSession(id, evseId);
   }
 
   @Get('/session/:id')
   async findSession(@Param('id') id: number) {
-    // return await this.ampecoService.storeSessionInfo();
     const session = await this.ampecoService.getSessionById(id);
     if (!session) {
       throw new NotFoundException();
