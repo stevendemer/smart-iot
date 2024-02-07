@@ -227,8 +227,6 @@ export class AmpecoService {
           };
         }
 
-        console.log('Session status', resp.status);
-
         await this.dbService.ampecoSession.create({
           data: {
             chargePointId: this.configService.get<number>('CHARGEPOINT_ID'),

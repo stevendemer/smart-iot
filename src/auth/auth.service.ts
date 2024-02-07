@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -27,16 +28,14 @@ export class AuthService {
 
   async login(dto: User): Promise<any> {
     const payload = {
-      email: dto.email,
       sub: dto.id,
+      email: dto.email,
     };
 
     return {
+      userId: dto.id,
       access_token: this.jwtService.sign(payload, {
         secret: process.env.AT_SECRET,
-      }),
-      refresh_token: this.jwtService.sign(payload, {
-        secret: process.env.RT_SECRET,
       }),
     };
   }
@@ -63,7 +62,7 @@ export class AuthService {
       },
     });
     if (!user) {
-      throw new NotFoundException('User does not exist');
+      throw new NotFoundException('Credentials are invalid');
     }
     const isPasswordValid = await argon2.verify(user.hash, password);
 
@@ -87,13 +86,15 @@ export class AuthService {
       .catch((error) => {
         if (error instanceof PrismaClientKnownRequestError) {
           if (error.code === 'P2002') {
-            throw new ForbiddenException('Credentials are invalid');
+            throw new ForbiddenException(
+              'This email address is already in use.',
+            );
           }
         }
-        throw error;
+        throw new BadRequestException(error);
       });
 
-    const tokens = await this.getTokens(newUser.id, newUser.email);
+    const tokens = await this.generateTokens(newUser.id, newUser.email);
 
     return tokens;
   }
@@ -127,7 +128,7 @@ export class AuthService {
     });
   }
 
-  async getTokens(userId: number, email: string): Promise<Tokens> {
+  private async generateTokens(userId: number, email: string): Promise<Tokens> {
     const jwtPayload: JwtPayload = {
       sub: userId,
       email,

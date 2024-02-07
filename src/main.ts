@@ -26,7 +26,7 @@ async function bootstrap() {
   const port = process.env.PORT || 5000;
 
   const config = new DocumentBuilder()
-    .setTitle('Smart Site API')
+    .setTitle('Smart IoT API')
     .setVersion('1.0')
     .build();
 
