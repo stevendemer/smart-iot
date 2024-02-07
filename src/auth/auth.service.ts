@@ -37,6 +37,9 @@ export class AuthService {
       access_token: this.jwtService.sign(payload, {
         secret: process.env.AT_SECRET,
       }),
+      refresh_token: this.jwtService.sign(payload, {
+        secret: process.env.RT_SECRET,
+      }),
     };
   }
 
@@ -128,7 +131,7 @@ export class AuthService {
     });
   }
 
-  private async generateTokens(userId: number, email: string): Promise<Tokens> {
+  async generateTokens(userId: number, email: string): Promise<Tokens> {
     const jwtPayload: JwtPayload = {
       sub: userId,
       email,

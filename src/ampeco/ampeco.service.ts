@@ -295,22 +295,6 @@ export class AmpecoService {
         const sessionObj = resp[resp.length - 1];
         console.log('Latest session is ', sessionObj);
         this.sessionId = sessionObj.id;
-        // const chargeEvent = new ChargeSessionEvent(true, lastSessionObj.id);
-
-        // await this.dbService.ampecoSession.create({
-        //   data: {
-        //     amount,
-        //     energy,
-        //     powerKw,
-        //     socPercent,
-        //     electricityCost,
-        //     startedAt,
-        //     stoppedAt,
-        //     chargePointId,
-        //     evseId,
-        //     sessionId,
-        //   },
-        // });
 
         await this.dbService.ampecoSession.create({
           data: {
@@ -330,11 +314,6 @@ export class AmpecoService {
         console.log('Session info stored');
         return true;
       } else {
-        // this.eventEmitter.emit(
-        //   'charging.stopped',
-        //   new ChargeSessionEvent(false),
-        // );
-
         console.log('No active session found');
         return false;
       }
