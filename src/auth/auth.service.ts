@@ -33,7 +33,6 @@ export class AuthService {
     };
 
     return {
-      userId: dto.id,
       access_token: this.jwtService.sign(payload, {
         secret: process.env.AT_SECRET,
       }),
