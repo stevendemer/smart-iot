@@ -15,7 +15,7 @@ import { Tokens } from './types/token.type';
 import { ApiTags } from '@nestjs/swagger';
 import { LocalAuthGuard } from './guards/local.guard';
 
-@ApiTags('authentication')
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}

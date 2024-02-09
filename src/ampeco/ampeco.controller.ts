@@ -7,8 +7,13 @@ import {
 } from '@nestjs/common';
 import { AmpecoService } from './ampeco.service';
 import { ApiTags } from '@nestjs/swagger';
+import { AccessTokenGuard } from '../auth/guards/at.guard';
+import { UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 
-@ApiTags('ampeco')
+@SkipThrottle()
+@UseGuards(AccessTokenGuard)
+@ApiTags('Ampeco')
 @Controller('ampeco')
 export class AmpecoController {
   constructor(private readonly ampecoService: AmpecoService) {}
@@ -38,6 +43,7 @@ export class AmpecoController {
 
   @Get('/session/:id')
   async findSession(@Param('id') id: number) {
+    // return await this.ampecoService.storeSessionInfo();
     const session = await this.ampecoService.getSessionById(id);
     if (!session) {
       throw new NotFoundException();

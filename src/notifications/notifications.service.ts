@@ -39,7 +39,7 @@ export class NotificationsService {
     const delaySeconds = 5 * 60; // 5 minutes delay
 
     if (this.retries < this.maxRetries && this.runCron) {
-      // console.log(`${this.retries} try for storeSession`);
+      console.log(`${this.retries} try for storeSession`);
       this.retries++;
 
       await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));

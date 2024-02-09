@@ -14,6 +14,7 @@ import { AmpecoService } from '../ampeco/ampeco.service';
 import { ChargeSessionEvent } from '../notifications/charge-session.event';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ApiTags } from '@nestjs/swagger';
 
 /**
  * TODO: When a user posts from the form, check if the charger is working, else trigger the session jobs
@@ -21,6 +22,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
  */
 
 @UseGuards(AccessTokenGuard)
+@ApiTags('Electric Vehicle')
 @Controller('ev')
 export class EvController {
   private logger = new Logger(EvController.name);

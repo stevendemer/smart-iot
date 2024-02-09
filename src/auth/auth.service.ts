@@ -32,14 +32,9 @@ export class AuthService {
       email: dto.email,
     };
 
-    return {
-      access_token: this.jwtService.sign(payload, {
-        secret: process.env.AT_SECRET,
-      }),
-      refresh_token: this.jwtService.sign(payload, {
-        secret: process.env.RT_SECRET,
-      }),
-    };
+    const tokens = await this.generateTokens(dto.id, dto.email);
+
+    return tokens;
   }
 
   async logout(userId: number): Promise<boolean> {
@@ -107,11 +102,12 @@ export class AuthService {
       sub: user.id,
     };
     return {
-      ...payload,
       access_token: this.jwtService.sign(payload, {
+        expiresIn: '25h',
         secret: process.env.AT_SECRET,
       }),
       refresh_token: this.jwtService.sign(payload, {
+        expiresIn: '30d',
         secret: process.env.RT_SECRET,
       }),
     };
@@ -136,18 +132,24 @@ export class AuthService {
       email,
     };
 
-    const [at, rt] = await Promise.all([
-      this.jwtService.signAsync(jwtPayload, {
-        secret: this.configService.get<string>('AT_SECRET'),
-      }),
-      this.jwtService.signAsync(jwtPayload, {
-        secret: this.configService.get<string>('RT_SECRET'),
-      }),
-    ]);
+    try {
+      const [at, rt] = await Promise.all([
+        this.jwtService.signAsync(jwtPayload, {
+          secret: this.configService.get<string>('AT_SECRET'),
+          expiresIn: '25h',
+        }),
+        this.jwtService.signAsync(jwtPayload, {
+          secret: this.configService.get<string>('RT_SECRET'),
+          expiresIn: '30d',
+        }),
+      ]);
 
-    return {
-      access_token: at,
-      refresh_token: rt,
-    };
+      return {
+        access_token: at,
+        refresh_token: rt,
+      };
+    } catch (error) {
+      console.error('Something went wrong ', error);
+    }
   }
 }

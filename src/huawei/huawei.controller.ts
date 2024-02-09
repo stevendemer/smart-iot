@@ -19,8 +19,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 
 @UseGuards(AccessTokenGuard)
-@ApiTags('huawei')
 @Controller('huawei')
+@ApiTags('Huawei')
 export class HuaweiController {
   constructor(
     private readonly huaweiService: HuaweiService,

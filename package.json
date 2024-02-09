@@ -32,6 +32,7 @@
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/swagger": "^7.1.16",
     "@nestjs/throttler": "^5.1.1",
+    "@ngneat/falso": "^7.1.1",
     "@prisma/client": "5.8.1",
     "adminjs": "^7.5.2",
     "argon2": "^0.31.2",

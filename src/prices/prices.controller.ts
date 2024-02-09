@@ -5,7 +5,7 @@ import * as moment from 'moment';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 
 @UseGuards(AccessTokenGuard)
-@ApiTags('prices')
+@ApiTags('Energy Prices')
 @Controller('prices')
 export class PricesController {
   constructor(private pricesService: PricesService) {}

@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 
 @UseGuards(AccessTokenGuard)
-@ApiTags('weather')
+@ApiTags('Weather')
 @Controller('weather')
 export class WeatherController {
   constructor(private dbService: DbService) {}
@@ -55,10 +55,17 @@ export class WeatherController {
   // ex. /weather/2023-01-09
   @Get('/:date')
   async getForecastDate(@Param('date') date: string) {
+    const parsedDate = new Date(date);
+
+    // check if the date string is valid
+    if (isNaN(parsedDate.getTime())) {
+      throw new NotFoundException('Invalid date format');
+    }
+
     const forecast = await this.dbService.weatherForecast.findMany({
       where: {
         forecastDate: {
-          contains: date,
+          contains: parsedDate.toISOString(),
         },
       },
       select: {
@@ -72,9 +79,37 @@ export class WeatherController {
     });
 
     if (!forecast || forecast.length === 0) {
-      throw new NotFoundException('No forecast found for the specified date');
+      throw new NotFoundException('No forecast found for the date given');
     }
 
     return forecast;
+  }
+
+  @Get('/today/radiation')
+  async getTodayRadiation() {
+    const date = moment().add(2, 'hours').format('YYYY-MM-DD HH:00:00');
+    const now = moment(date).toISOString();
+
+    const forecasts = await this.dbService.weatherForecast.findMany({
+      where: {
+        forecastDate: {
+          contains: now,
+        },
+      },
+      select: {
+        diffuseRadiation: true,
+        directRadiation: true,
+      },
+    });
+
+    // sum all the radiation values for today
+    const totalRadiation = forecasts.reduce((sum, forecast) => {
+      return (sum = forecast.diffuseRadiation + forecast.directRadiation);
+    }, 0);
+
+    return {
+      now,
+      totalRadiation,
+    };
   }
 }

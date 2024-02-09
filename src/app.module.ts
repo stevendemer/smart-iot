@@ -16,9 +16,16 @@ import { EvModule } from './ev/ev.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 5000,
+        limit: 20,
+      },
+    ]),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot({
       delimiter: '.',
