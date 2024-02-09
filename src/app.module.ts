@@ -20,6 +20,11 @@ import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+
     ThrottlerModule.forRoot([
       {
         ttl: 5000,
@@ -32,10 +37,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
     }),
     PricesModule,
     // reading env variables
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env.local',
-    }),
     CacheModule.register({
       isGlobal: true,
     }),
