@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   NotFoundException,
+  OnModuleInit,
   Param,
   UseGuards,
 } from '@nestjs/common';
@@ -15,6 +16,20 @@ import { AccessTokenGuard } from '../auth/guards/at.guard';
 @Controller('weather')
 export class WeatherController {
   constructor(private dbService: DbService) {}
+
+  @Get('')
+  async getAllForecasts() {
+    return await this.dbService.weatherForecast.findMany({
+      select: {
+        cloudCover: true,
+        diffuseRadiation: true,
+        isDay: true,
+        directRadiation: true,
+        temperature: true,
+        forecastDate: true,
+      },
+    });
+  }
 
   @Get('now')
   async getCurrentForecast() {
@@ -37,21 +52,52 @@ export class WeatherController {
     });
   }
 
-  @Get('')
-  async getAllForecasts() {
-    return await this.dbService.weatherForecast.findMany({
+  @Get('/total-radiation/today')
+  async getTotalRadiationToday() {
+    const date = moment().format('YYYY-MM-DD');
+
+    const forecasts = await this.dbService.weatherForecast.findMany({
+      where: {
+        forecastDate: {
+          contains: date,
+        },
+      },
       select: {
-        cloudCover: true,
         diffuseRadiation: true,
-        isDay: true,
         directRadiation: true,
-        temperature: true,
-        forecastDate: true,
       },
     });
+    let sum = 0;
+
+    for (let f of forecasts) {
+      sum += f.diffuseRadiation + f.directRadiation;
+    }
+
+    return {
+      date,
+      totalRadiation: sum,
+    };
   }
 
-  // Get the forecast for the whole date
+  @Get('/total-radiation')
+  async getTotalRadiation() {
+    const forecasts = await this.dbService.weatherForecast.findMany({
+      select: {
+        diffuseRadiation: true,
+        directRadiation: true,
+      },
+    });
+    let sum = 0;
+
+    for (let f of forecasts) {
+      sum += f.diffuseRadiation + f.directRadiation;
+    }
+
+    return {
+      totalRadiation: sum,
+    };
+  }
+
   // ex. /weather/2023-01-09
   @Get('/:date')
   async getForecastDate(@Param('date') date: string) {
@@ -65,7 +111,7 @@ export class WeatherController {
     const forecast = await this.dbService.weatherForecast.findMany({
       where: {
         forecastDate: {
-          contains: parsedDate.toISOString(),
+          contains: date,
         },
       },
       select: {
@@ -83,33 +129,5 @@ export class WeatherController {
     }
 
     return forecast;
-  }
-
-  @Get('/today/radiation')
-  async getTodayRadiation() {
-    const date = moment().add(2, 'hours').format('YYYY-MM-DD HH:00:00');
-    const now = moment(date).toISOString();
-
-    const forecasts = await this.dbService.weatherForecast.findMany({
-      where: {
-        forecastDate: {
-          contains: now,
-        },
-      },
-      select: {
-        diffuseRadiation: true,
-        directRadiation: true,
-      },
-    });
-
-    // sum all the radiation values for today
-    const totalRadiation = forecasts.reduce((sum, forecast) => {
-      return (sum = forecast.diffuseRadiation + forecast.directRadiation);
-    }, 0);
-
-    return {
-      now,
-      totalRadiation,
-    };
   }
 }

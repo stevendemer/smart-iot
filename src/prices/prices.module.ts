@@ -10,8 +10,7 @@ import { PricesController } from './prices.controller';
   imports: [
     DbModule,
     HttpModule.register({
-      timeout: 12000,
-      maxRedirects: 5,
+      maxRedirects: 9,
     }),
   ],
   controllers: [PricesController],

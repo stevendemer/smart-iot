@@ -2,19 +2,11 @@ import {
   Controller,
   Get,
   HttpCode,
-  Inject,
-  Post,
+  Param,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { HuaweiService } from './huawei.service';
-import {
-  CACHE_MANAGER,
-  CacheTTL,
-  CacheInterceptor,
-} from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
-import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 
@@ -22,47 +14,20 @@ import { AccessTokenGuard } from '../auth/guards/at.guard';
 @Controller('huawei')
 @ApiTags('Huawei')
 export class HuaweiController {
-  constructor(
-    private readonly huaweiService: HuaweiService,
-    @Inject(CACHE_MANAGER)
-    private cacheManager: Cache,
-    private configService: ConfigService,
-  ) {}
+  constructor(private readonly huaweiService: HuaweiService) {}
 
-  // @HttpCode(200)
-  // @Post('login')
-  // async login() {
-  //   const response = await this.huaweiService.login();
-  //   if (response.failCode === 0) {
-  //     // login was a success
-
-  //     return {
-  //       token: response.token,
-  //       message: 'Logged in',
-  //     };
-  //   }
-  // }
-
-  @UseInterceptors(CacheInterceptor)
-  @CacheTTL(30)
-  @Get('/dev/real-time')
-  async testRoute() {
-    return await this.huaweiService.storeDevRealTime();
+  @Get()
+  async getAllReadings() {
+    return await this.huaweiService.getAll();
   }
 
-  @Get('/stations')
-  async getStations() {
-    return await this.huaweiService.getStations();
+  @Get('/device/:id')
+  async getDevReadings(@Param('id') id: number) {
+    return await this.huaweiService.getDeviceReadings(id);
   }
 
-  // @Get('/token')
-  // async getToken() {
-  //   const cachedToken = await this.cacheManager.get('huawei-token');
-  //   if (!cachedToken) {
-  //     return {
-  //       message: 'No token found',
-  //     };
-  //   }
-  //   return cachedToken;
-  // }
+  @Get('/:date')
+  async getReadingByDate(@Param('date') date: string) {
+    return await this.huaweiService.getReadingByDate(date);
+  }
 }

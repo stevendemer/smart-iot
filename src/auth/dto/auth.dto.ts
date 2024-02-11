@@ -10,6 +10,6 @@ export class AuthDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  @MinLength(8, { message: 'Passwords must be at least 8 characters long' })
+  @MinLength(10, { message: 'Passwords must be at least 10 characters long' })
   password: string;
 }

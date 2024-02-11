@@ -1,10 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  OnModuleInit,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import * as moment from 'moment';
 import { ConfigService } from '@nestjs/config';
@@ -17,7 +12,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
  * so we need to relogin when needed
  */
 @Injectable()
-export class HuaweiService implements OnModuleInit {
+export class HuaweiService {
   private logger: Logger = new Logger(HuaweiService.name);
   private token: string | null = null;
 
@@ -31,10 +26,6 @@ export class HuaweiService implements OnModuleInit {
 
   private setToken(token: string) {
     this.token = token;
-  }
-
-  async onModuleInit() {
-    // await this.storeDevRealTime();
   }
 
   private setupInterceptors() {
@@ -143,7 +134,6 @@ export class HuaweiService implements OnModuleInit {
     try {
       const { data } = await firstValueFrom(
         this.httpService.post(
-          // 'https://4d27d917-df74-477d-a455-03c5b59ea163.mock.pstmn.io/thirdData/getDevRealKpi',
           'https://eu5.fusionsolar.huawei.com/thirdData/getDevRealKpi',
           {
             devIds: 'NE=36653898',
@@ -209,10 +199,45 @@ export class HuaweiService implements OnModuleInit {
     }
   }
 
-  async findPvReading() {}
+  async getAll() {
+    return await this.dbService.pVReading.findMany({});
+  }
 
-  /**
-   */
+  async getReadingByDate(date: string) {
+    const searchDate = new Date(date);
+
+    const dateString = searchDate.toISOString().split('T')[0];
+
+    console.log('The date string ', dateString);
+
+    return await this.dbService.pVReading.findMany({
+      where: {
+        createdAt: {
+          gte: new Date(`${dateString}T00:00:00.000Z`),
+          lt: new Date(`${dateString}T23:59:59.000Z`),
+        },
+      },
+    });
+  }
+
+  async getDeviceReadings(id: number) {
+    const readings = await this.dbService.pVReading.findMany({
+      where: {
+        devId: id,
+      },
+      select: {
+        activePower: true,
+        efficiency: true,
+        inverterState: true,
+        reactivePower: true,
+        runState: true,
+        totalInputPower: true,
+        totalYield: true,
+      },
+    });
+    return readings;
+  }
+
   async getStations() {
     try {
       const { data } = await firstValueFrom(

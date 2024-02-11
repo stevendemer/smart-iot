@@ -12,7 +12,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class WeatherService implements OnModuleInit {
   constructor(private readonly dbService: DbService) {}
 
-  // populate the db with the weekly forecast
   async onModuleInit() {
     await this.dbService.weatherForecast.deleteMany({});
     await this.storeForecast();

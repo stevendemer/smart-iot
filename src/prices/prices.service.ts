@@ -4,8 +4,8 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
   OnModuleInit,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { parseString, parseStringPromise } from 'xml2js';
 import { DbService } from '../db/db.service';
@@ -23,8 +23,7 @@ export class PricesService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // await this.dbService.energyPrice.deleteMany({});
-    // await this.storePrices();
+    await this.storePrices();
   }
 
   getDates() {
@@ -54,9 +53,6 @@ export class PricesService implements OnModuleInit {
     return (hourString.length === 1 ? '0' : '') + hourString;
   }
 
-  /**
-   * Day-head prices
-   */
   async getEnergyPrices() {
     const url = this.generateURL();
     let error = new Error();
@@ -141,13 +137,9 @@ export class PricesService implements OnModuleInit {
   /**
    * Gets the XML response, parses it and stores it in the database
    */
-  // @Cron(CronExpression.EVERY_DAY_AT_10PM, { name: 'prices' })
+  @Cron(CronExpression.EVERY_DAY_AT_10PM, { name: 'prices' })
   async storePrices() {
     const { document } = await this.getEnergyPrices();
-
-    // const array = await this.dayAheadPriceTR(document);
-
-    // console.log('array is ', JSON.stringify(array, null, 2));
 
     parseString(document, async (error, result: any) => {
       if (error) {
@@ -169,7 +161,7 @@ export class PricesService implements OnModuleInit {
 
       const promises: Promise<any>[] = [];
 
-      todayPrices.map(async (item) => {
+      for (const item of todayPrices) {
         let hour = this.convertPositionToHour(item.position);
         const price = parseFloat(item['price.amount'][0]) / 1000;
         let formatDate = moment(periodStart, 'YYYYMMDDHHmm');
@@ -187,9 +179,9 @@ export class PricesService implements OnModuleInit {
           },
         });
         promises.push(pro1);
-      });
+      }
 
-      nextDayPrices.map(async (item) => {
+      for (const item of nextDayPrices) {
         const hour = this.convertPositionToHour(item.position);
         const price = parseFloat(item['price.amount'][0]) / 1000;
 
@@ -209,11 +201,11 @@ export class PricesService implements OnModuleInit {
         });
 
         promises.push(pro2);
-      });
+      }
 
       await Promise.allSettled(promises).catch((error) => {
         this.logger.error(error);
-        throw error;
+        throw new BadRequestException('Error retrieving the prices', error);
       });
     });
   }
@@ -262,40 +254,6 @@ export class PricesService implements OnModuleInit {
     }
   }
 
-  async findHighestPrice(date?: string) {
-    try {
-      if (date) {
-        // the highest only for today
-
-        return await this.dbService.energyPrice.findFirst({
-          where: {
-            date,
-          },
-          select: {
-            price: true,
-            date: true,
-            hour: true,
-          },
-          orderBy: {
-            price: 'desc',
-          },
-        });
-      }
-
-      return await this.dbService.energyPrice.findFirst({
-        select: {
-          price: true,
-        },
-        orderBy: {
-          price: 'desc', // asc for the lowest
-        },
-      });
-    } catch (error) {
-      this.logger.error(error);
-      throw error;
-    }
-  }
-
   async getAllPrices() {
     return await this.dbService.energyPrice.findMany({
       select: {
@@ -321,24 +279,10 @@ export class PricesService implements OnModuleInit {
     return aggregations._avg.price.toFixed(4);
   }
 
-  async findLowestPrice(date?: string) {
-    try {
-      if (date) {
-        return await this.dbService.energyPrice.findFirst({
-          where: {
-            date,
-          },
-          select: {
-            price: true,
-            hour: true,
-            date: true,
-          },
-          orderBy: {
-            price: 'asc',
-          },
-        });
-      }
+  async findPrice(max: boolean, date?: string) {
+    const flag = max ? 'desc' : 'asc';
 
+    if (!date) {
       return await this.dbService.energyPrice.findFirst({
         select: {
           price: true,
@@ -346,21 +290,43 @@ export class PricesService implements OnModuleInit {
           date: true,
         },
         orderBy: {
-          price: 'asc',
+          price: flag,
         },
       });
-    } catch (error) {
-      this.logger.error(error);
-      throw error;
     }
-  }
 
-  async findPriceForDate(date: string, skip?: number) {
-    const prices = await this.dbService.energyPrice.findMany({
+    const parsed = new Date(date);
+
+    if (isNaN(parsed.getTime())) {
+      throw new NotFoundException('Invalid date format');
+    }
+
+    return await this.dbService.energyPrice.findFirst({
       where: {
         date,
       },
-      skip: skip || undefined,
+      select: {
+        price: true,
+        hour: true,
+        date: true,
+      },
+      orderBy: {
+        price: flag,
+      },
+    });
+  }
+
+  async findPriceForDate(date: string) {
+    const parsed = new Date(date);
+
+    if (isNaN(parsed.getTime())) {
+      throw new NotFoundException('Invalid date format');
+    }
+
+    const prices = await this.dbService.energyPrice.findMany({
+      where: {
+        date: date,
+      },
       select: {
         date: true,
         hour: true,
