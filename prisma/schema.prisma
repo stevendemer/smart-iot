@@ -71,8 +71,9 @@ model PVReading {
   totalInputPower Float
   runState        Boolean @default(false)
 
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // one-to-many relation
   account   PVAccount? @relation(fields: [accountId], references: [id])
   accountId Int?
@@ -87,7 +88,7 @@ model AmpecoSession {
 
   evseId Int
 
-  sessionId Int
+  sessionId String
 
   startedAt String
 
@@ -97,16 +98,18 @@ model AmpecoSession {
   energy Float
 
   // rate of energy flow to the EV's battery
-  powerKw Int
+  powerKw Float
 
   // state of charge percent (current battery charge leve)
   socPercent Float?
 
   // cost during the charging session
-  electricityCost Float
+  electricityCost Float?
 
   // the total cost to be paid
-  amount Float
+  amount Float?
+
+  status String
 
   createdAt DateTime @default(now())
 

@@ -6,6 +6,7 @@ import { ResponseInterceptor } from './response-interceptor';
 import * as session from 'express-session';
 import * as passport from 'passport';
 import helmet from 'helmet';
+import { PrismaClientExceptionFilter } from './filters/prisma-client-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

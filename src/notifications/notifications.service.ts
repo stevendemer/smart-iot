@@ -3,6 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { AmpecoService } from 'src/ampeco/ampeco.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { ChargeSessionEvent } from './charge-session.event';
 
 /**
  * Handles scheduling logic related to the session storing functionality
@@ -21,15 +22,12 @@ export class NotificationsService {
     private scheduler: SchedulerRegistry,
   ) {}
 
-  @Cron(CronExpression.EVERY_HOUR, { name: 'ampeco' })
-  async storeSession() {
+  @Cron(CronExpression.EVERY_10_SECONDS, { name: 'ampeco' })
+  async storeSession(payload?: ChargeSessionEvent) {
     if (this.runCron) {
-      console.log('Inside session cron job');
       const res = await this.ampecoService.readSessionInfo();
 
-      console.log(res);
-
-      if (!res) {
+      if (res === false) {
         await this.handleRetries();
       }
     }
@@ -39,15 +37,15 @@ export class NotificationsService {
     const delaySeconds = 5 * 60; // 5 minutes delay
 
     if (this.retries < this.maxRetries && this.runCron) {
-      console.log(`${this.retries} try for storeSession`);
+      console.log(`${this.retries} retry`);
       this.retries++;
 
       await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
 
-      // retry the job
+      // retry for an active session
       await this.storeSession();
     } else {
-      console.error('Max tries reached. Giving up on storeSession...');
+      console.log('Stopping cron job...');
       this.stopStoring();
     }
   }

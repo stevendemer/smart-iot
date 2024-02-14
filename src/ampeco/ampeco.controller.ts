@@ -46,7 +46,7 @@ export class AmpecoController {
   }
 
   @Get('/session/:id')
-  async findSession(@Param('id') id: number) {
+  async findSession(@Param('id') id: string) {
     const session = await this.ampecoService.getSessionById(id);
     if (!session) {
       throw new NotFoundException();

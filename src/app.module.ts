@@ -17,6 +17,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PrismaClientExceptionFilter } from './filters/prisma-client-exception.filter';
 
 @Module({
   imports: [
@@ -55,6 +56,10 @@ import { ThrottlerModule } from '@nestjs/throttler';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: PrismaClientExceptionFilter,
     },
   ],
 })

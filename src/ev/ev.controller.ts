@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Logger,
   Post,
@@ -59,16 +60,16 @@ export class EvController {
         },
       });
 
-      const isCharging = await this.ampecoService.isCurrentlyCharging(
-        this.chargePointId,
-      );
+      // const isCharging = await this.ampecoService.isCurrentlyCharging(
+      //   this.chargePointId,
+      // );
 
-      if (isCharging) {
-        return {
-          message:
-            'The charge station: ' + this.chargePointId + ' is unavailable',
-        };
-      }
+      // if (isCharging) {
+      //   return {
+      //     message:
+      //       'The charge station: ' + this.chargePointId + ' is unavailable',
+      //   };
+      // }
 
       // trigger the cron job for storing the session info
       this.eventEmitter.emit('charging.started', new ChargeSessionEvent(true));
@@ -78,7 +79,7 @@ export class EvController {
       };
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

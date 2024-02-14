@@ -1,13 +1,16 @@
 import { HttpService } from '@nestjs/axios';
 import {
+  BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AxiosError } from 'axios';
-import { catchError, firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, lastValueFrom } from 'rxjs';
 import { DbService } from '../db/db.service';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -26,10 +29,6 @@ export class AmpecoService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  /**
-   *
-   * @param chargePointId
-   */
   async stopChargingSession(chargePointId: number) {
     try {
       if (!this.isCharging) {
@@ -50,14 +49,13 @@ export class AmpecoService {
           .pipe(
             catchError((error: AxiosError) => {
               this.logger.error(error);
-              throw error;
+              throw new HttpException('Failed to stop charging', status);
             }),
           ),
       );
 
       // trigger event
       const chargeSessionEvent = new ChargeSessionEvent(false);
-      // chargeSessionEvent.isCharging = false;
 
       this.eventEmitter.emit('charging.stopped', chargeSessionEvent);
 
@@ -66,7 +64,10 @@ export class AmpecoService {
       };
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new HttpException(
+        'Failed to stop the charging session',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
@@ -92,7 +93,10 @@ export class AmpecoService {
       return data;
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new HttpException(
+        'Failed to reserver charging point',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
@@ -101,6 +105,8 @@ export class AmpecoService {
       const { data, status } = await firstValueFrom(
         this.httpService.get(`resources/charge-points/v1.0/${id}/status`),
       );
+
+      console.log('Inside ampeco ', status);
 
       const hardwareStatus = data.data['evses'][0]['hardwareStatus'];
 
@@ -128,12 +134,14 @@ export class AmpecoService {
         this.httpService
           .post(
             `actions/charge-point/v1.0/${chargePointId}/start/${evseNetworkId}`,
-            // `https://f5b0ad54-ce3f-419b-bc0f-820c8219f4ed.mock.pstmn.io/ampeco/start`,
           )
           .pipe(
             catchError((error: AxiosError) => {
               this.logger.error(error);
-              throw error;
+              throw new HttpException(
+                'Failed to start charging session',
+                status,
+              );
             }),
           ),
       );
@@ -160,7 +168,10 @@ export class AmpecoService {
       };
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new HttpException(
+        'Something went wrong',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -177,7 +188,10 @@ export class AmpecoService {
           .pipe(
             catchError((error: AxiosError) => {
               this.logger.error(error.message);
-              throw error;
+              throw new HttpException(
+                'Failed to get the charging point status',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+              );
             }),
           ),
       );
@@ -185,7 +199,10 @@ export class AmpecoService {
       return data;
     } catch (error) {
       this.logger.error(error);
-      throw new Error('Error stopping the charging session');
+      throw new HttpException(
+        'Something went wrong ',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -203,7 +220,10 @@ export class AmpecoService {
             .pipe(
               catchError((error: AxiosError) => {
                 this.logger.error(error.message);
-                throw error;
+                throw new HttpException(
+                  'Failed to get session info with id ' + this.sessionId,
+                  status,
+                );
               }),
             ),
         );
@@ -226,21 +246,6 @@ export class AmpecoService {
           };
         }
 
-        await this.dbService.ampecoSession.create({
-          data: {
-            chargePointId: this.configService.get<number>('CHARGEPOINT_ID'),
-            electricityCost: resp.electricityCost,
-            energy: resp.energy,
-            powerKw: resp.powerKw,
-            socPercent: resp.socPercent,
-            evseId: this.configService.get<number>('EVSE_ID'),
-            amount: resp.amount,
-            startedAt: resp.startedAt,
-            stoppedAt: resp.stoppedAt,
-            sessionId: Number(this.sessionId),
-          },
-        });
-
         return {
           message: 'Session info stored',
           success: true,
@@ -253,11 +258,11 @@ export class AmpecoService {
       }
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new HttpException('Something went wrong', HttpStatus.BAD_REQUEST);
     }
   }
 
-  async getSessionById(id: number) {
+  async getSessionById(id: string) {
     try {
       const session = await this.dbService.ampecoSession.findMany({
         where: {
@@ -268,7 +273,6 @@ export class AmpecoService {
       return session;
     } catch (error) {
       this.logger.error(error);
-      throw error;
     }
   }
 
@@ -278,7 +282,7 @@ export class AmpecoService {
         this.httpService.get(`resources/sessions/v1.0`).pipe(
           catchError((error: AxiosError) => {
             this.logger.error(error.message);
-            throw error;
+            throw new HttpException(error.message, error.status);
           }),
         ),
       );
@@ -289,42 +293,77 @@ export class AmpecoService {
 
       const resp = data.data;
 
-      // make sure the request was a success and there are sessions found
-      if (resp.length > 0 && resp.status === 'active') {
-        const sessionObj = resp[resp.length - 1];
-        console.log('Latest session is ', sessionObj);
-        this.sessionId = sessionObj.id;
+      const latestSession = resp[resp.length - 1];
+
+      if (latestSession.status === 'finished') {
+        // const sessionObject = resp[resp.length - 1];
+        console.log('Latest session object is ', latestSession);
+        this.sessionId = latestSession.id;
 
         await this.dbService.ampecoSession.create({
           data: {
-            energy: sessionObj.energy,
-            powerKw: sessionObj.powerKw,
-            sessionId: sessionObj.id,
-            amount: sessionObj.amount,
-            electricityCost: sessionObj?.electricityCost,
-            socPercent: sessionObj?.socPercent,
-            startedAt: sessionObj.startedAt,
-            stoppedAt: sessionObj?.stoppedAt,
-            evseId: sessionObj.evseId,
-            chargePointId: sessionObj.chargePointId,
+            energy: latestSession.energy,
+            powerKw: latestSession.powerKw,
+            sessionId: latestSession.id,
+            amount: latestSession.amount,
+            electricityCost: latestSession?.electricityCost,
+            socPercent: latestSession?.socPercent,
+            startedAt: latestSession.startedAt,
+            stoppedAt: latestSession.stoppedAt,
+            evseId: latestSession.evseId,
+            chargePointId: latestSession.chargePointId,
+            status: latestSession.status,
           },
         });
 
-        console.log('Session info stored');
+        console.log('Charging session has been saved');
+
+        this.eventEmitter.emit(
+          'charging.stopped',
+          new ChargeSessionEvent(false),
+        );
+
+        return false;
+      } else if (latestSession.status === 'active') {
+        this.sessionId = latestSession.id;
+
+        await this.dbService.ampecoSession.create({
+          data: {
+            energy: latestSession.energy,
+            powerKw: latestSession.powerKw,
+            sessionId: latestSession.id,
+            amount: latestSession.amount,
+            electricityCost: latestSession?.electricityCost,
+            socPercent: latestSession?.socPercent,
+            startedAt: latestSession.startedAt,
+            stoppedAt: latestSession.stoppedAt,
+            evseId: latestSession.evseId,
+            chargePointId: latestSession.chargePointId,
+            status: latestSession.status,
+          },
+        });
+
+        console.log('Active charging session has been saved');
         return true;
+      } else if (latestSession.status === 'pending') {
+        console.log('Charging session is pending');
       } else {
         console.log('No active session found');
+        this.eventEmitter.emit('charging.stopped');
         return false;
       }
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new HttpException(error.message || 'Error storing session', 500);
     }
   }
 
   async getStoredSessions() {
     try {
       const sessions = await this.dbService.ampecoSession.findMany({});
+      if (sessions.length === 0) {
+        throw new NotFoundException('No stored sessions in the database');
+      }
       return sessions;
     } catch (error) {
       this.logger.error(error);
