@@ -14,7 +14,6 @@ jobs:
         host: ${{secrets.HOST}}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}    
-        script: whoami
         port: 22
         script: |
             cd /home/steven/smart-iot
@@ -23,3 +22,4 @@ jobs:
             npm i 
             npm run build 
             pm2 restart main
+            whoami
