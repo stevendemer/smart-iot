@@ -24,10 +24,8 @@ export class TokenInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
 
     if (token && !this.tokenService.isExpired()) {
-      console.log('Token is fine');
       request.headers['XSRF-TOKEN'] = token;
     } else {
-      console.log('Token has expired');
       // if the token has expired or is not present, refresh it
       await this.tokenService.refreshToken();
       const token = this.tokenService.getToken();

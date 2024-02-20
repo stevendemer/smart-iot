@@ -33,7 +33,6 @@ export class HuaweiService {
 
     this.httpService.axiosRef.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        // console.log('Inside request config: ', this.token);
         config.headers['XSRF-TOKEN'] = this.token;
         return config;
       },
@@ -207,8 +206,6 @@ export class HuaweiService {
     const searchDate = new Date(date);
 
     const dateString = searchDate.toISOString().split('T')[0];
-
-    console.log('The date string ', dateString);
 
     return await this.dbService.pVReading.findMany({
       where: {

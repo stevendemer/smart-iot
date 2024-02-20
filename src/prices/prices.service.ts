@@ -9,9 +9,9 @@ import {
 } from '@nestjs/common';
 import { parseString, parseStringPromise } from 'xml2js';
 import { DbService } from '../db/db.service';
-import * as moment from 'moment';
 import { firstValueFrom } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import * as moment from 'moment';
 
 @Injectable()
 export class PricesService implements OnModuleInit {
@@ -205,15 +205,34 @@ export class PricesService implements OnModuleInit {
 
       await Promise.allSettled(promises).catch((error) => {
         this.logger.error(error);
-        throw new BadRequestException('Error retrieving the prices', error);
+        throw new InternalServerErrorException(
+          'Error retrieving energy prices',
+          error,
+        );
       });
     });
   }
 
+  /**
+   *
+   * @returns the kWh price for the current hour (EEST Timezone)
+   */
   async findCurrentHourPrice() {
     const now = new Date();
+    let options = {
+      timeZone: 'Europe/Athens',
+      hour12: false,
+    };
+
+    // replace the actual minutes with 00 and remove any trailing whitespace
+    let hour = now
+      .toLocaleString('en-US', options)
+      .split(',')[1]
+      .split(':')[0]
+      .concat(':00')
+      .trim();
+
     const date = now.toISOString().split('T')[0];
-    const hour = now.getHours().toString().padStart(2, '0') + ':00';
 
     try {
       return await this.dbService.energyPrice.findFirst({
@@ -229,7 +248,7 @@ export class PricesService implements OnModuleInit {
       });
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new InternalServerErrorException(error);
     }
   }
 
@@ -250,7 +269,7 @@ export class PricesService implements OnModuleInit {
       });
     } catch (error) {
       this.logger.error(error);
-      throw error;
+      throw new InternalServerErrorException(error);
     }
   }
 

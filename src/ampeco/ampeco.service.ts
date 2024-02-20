@@ -106,12 +106,9 @@ export class AmpecoService {
         this.httpService.get(`resources/charge-points/v1.0/${id}/status`),
       );
 
-      console.log('Inside ampeco ', status);
-
       const hardwareStatus = data.data['evses'][0]['hardwareStatus'];
 
       if (hardwareStatus === 'charging') {
-        console.log(`Point: ${id} is charging`);
         return true;
       }
       return false;
@@ -209,8 +206,6 @@ export class AmpecoService {
   async storeSessionInfo() {
     try {
       if (this.isCharging && this.sessionId) {
-        console.log('The session id is', this.sessionId);
-
         const { data, status } = await firstValueFrom(
           this.httpService
             .get(
@@ -295,10 +290,24 @@ export class AmpecoService {
 
       const latestSession = resp[resp.length - 1];
 
+      const lastStoredSession = await this.dbService.ampecoSession.findFirst({
+        where: {
+          sessionId: latestSession.id,
+        },
+      });
+
+      // console.log('[LAST AMPECO SESSION] = ', resp);
+      console.log('[LAST STORED SESSION] = ', lastStoredSession);
+      this.sessionId = latestSession.id;
+
+      if (lastStoredSession && latestSession.status === 'finished') {
+        // no new charging session started, let it retry for 3 times
+        console.log('No new session found! Retrying...');
+        return false;
+      }
+
       if (latestSession.status === 'finished') {
         // const sessionObject = resp[resp.length - 1];
-        console.log('Latest session object is ', latestSession);
-        this.sessionId = latestSession.id;
 
         await this.dbService.ampecoSession.create({
           data: {
@@ -318,14 +327,13 @@ export class AmpecoService {
 
         console.log('Charging session has been saved');
 
-        this.eventEmitter.emit(
-          'charging.stopped',
-          new ChargeSessionEvent(false),
-        );
+        this.eventEmitter.emit('charging.stopped');
 
         return false;
       } else if (latestSession.status === 'active') {
         this.sessionId = latestSession.id;
+
+        console.log('Charging session is active');
 
         await this.dbService.ampecoSession.create({
           data: {
@@ -343,7 +351,6 @@ export class AmpecoService {
           },
         });
 
-        console.log('Active charging session has been saved');
         return true;
       } else if (latestSession.status === 'pending') {
         console.log('Charging session is pending');

@@ -22,7 +22,7 @@ export class NotificationsService {
     private scheduler: SchedulerRegistry,
   ) {}
 
-  @Cron(CronExpression.EVERY_10_SECONDS, { name: 'ampeco' })
+  @Cron(CronExpression.EVERY_HOUR, { name: 'ampeco' })
   async storeSession(payload?: ChargeSessionEvent) {
     if (this.runCron) {
       const res = await this.ampecoService.readSessionInfo();
@@ -37,7 +37,6 @@ export class NotificationsService {
     const delaySeconds = 5 * 60; // 5 minutes delay
 
     if (this.retries < this.maxRetries && this.runCron) {
-      console.log(`${this.retries} retry`);
       this.retries++;
 
       await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
@@ -45,7 +44,6 @@ export class NotificationsService {
       // retry for an active session
       await this.storeSession();
     } else {
-      console.log('Stopping cron job...');
       this.stopStoring();
     }
   }
@@ -57,7 +55,7 @@ export class NotificationsService {
     const job = this.scheduler.getCronJob('ampeco');
     if (job.running) {
       job.stop();
-      console.log('Session job stopped');
+      console.log('Aborting store session job');
     }
   }
 
