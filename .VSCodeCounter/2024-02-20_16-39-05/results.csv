@@ -1,5 +1,0 @@
-"filename", "language", "Prisma", "json", "Ignore", "comment", "blank", "total"
-"/home/steven/work/nest-api-renel/.dockerignore", "Ignore", 0, 0, 6, 0, 7, 13
-"/home/steven/work/nest-api-renel/.prettierrc", "json", 0, 4, 0, 0, 0, 4
-"/home/steven/work/nest-api-renel/prisma/schema.prisma", "Prisma", 89, 0, 0, 8, 33, 130
-"Total", "-", 89, 4, 6, 8, 40, 147
