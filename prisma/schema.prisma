@@ -109,7 +109,7 @@ model AmpecoSession {
   // the total cost to be paid
   amount Float?
 
-  status String
+  status String?
 
   createdAt DateTime @default(now())
 
