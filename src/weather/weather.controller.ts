@@ -11,7 +11,6 @@ import { DbService } from '../db/db.service';
 import { ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 
-@UseGuards(AccessTokenGuard)
 @ApiTags('Weather')
 @Controller('weather')
 export class WeatherController {

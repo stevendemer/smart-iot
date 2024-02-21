@@ -296,8 +296,6 @@ export class AmpecoService {
         },
       });
 
-      // console.log('[LAST AMPECO SESSION] = ', resp);
-      console.log('[LAST STORED SESSION] = ', lastStoredSession);
       this.sessionId = latestSession.id;
 
       if (lastStoredSession && latestSession.status === 'finished') {

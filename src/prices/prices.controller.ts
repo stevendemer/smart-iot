@@ -4,7 +4,6 @@ import { ApiTags } from '@nestjs/swagger';
 import * as moment from 'moment';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 
-@UseGuards(AccessTokenGuard)
 @ApiTags('Energy Prices')
 @Controller('prices')
 export class PricesController {

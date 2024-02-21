@@ -10,7 +10,6 @@ import { ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/at.guard';
 import { UseGuards } from '@nestjs/common';
 
-@UseGuards(AccessTokenGuard)
 @ApiTags('Ampeco')
 @Controller('ampeco')
 export class AmpecoController {
