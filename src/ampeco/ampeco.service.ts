@@ -393,4 +393,15 @@ export class AmpecoService {
       throw error;
     }
   }
+
+  async deleteAll() {
+    try {
+      await this.dbService.ampecoSession.deleteMany({});
+
+      return true;
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
+  }
 }

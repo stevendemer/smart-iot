@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -42,6 +43,20 @@ export class AmpecoController {
   async findAllSessions() {
     const sessions = await this.ampecoService.getStoredSessions();
     return sessions;
+  }
+
+  @Delete('/sessions')
+  async deleteSessions() {
+    const result = await this.ampecoService.deleteAll();
+    if (result) {
+      return {
+        message: 'Sessions deleted',
+      };
+    } else {
+      return {
+        message: 'Error deleting sessions',
+      };
+    }
   }
 
   @Get('/session/:id')
