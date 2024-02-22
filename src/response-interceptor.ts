@@ -33,6 +33,7 @@ export class ResponseInterceptor implements NestInterceptor {
     return {
       status,
       message: JSON.stringify(exception.message),
+      cause: JSON.stringify(exception.cause),
     };
   }
 

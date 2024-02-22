@@ -35,7 +35,7 @@ export class EvController {
    */
   @Post('/readings')
   @HttpCode(HttpStatus.CREATED)
-  async postEVInfo(@Body() body: EVDto) {
+  async postEVInfo(@Body() body: any) {
     try {
       const {
         carBatteryCapacity,
