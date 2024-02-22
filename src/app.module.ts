@@ -25,13 +25,6 @@ import { PrismaClientExceptionFilter } from './filters/prisma-client-exception.f
       isGlobal: true,
       envFilePath: '.env',
     }),
-
-    ThrottlerModule.forRoot([
-      {
-        ttl: 5000,
-        limit: 20,
-      },
-    ]),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot({
       delimiter: '.',
@@ -53,10 +46,6 @@ import { PrismaClientExceptionFilter } from './filters/prisma-client-exception.f
   providers: [
     SessionListener,
     AppService,
-    {
-      provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
-    },
     {
       provide: APP_FILTER,
       useClass: PrismaClientExceptionFilter,

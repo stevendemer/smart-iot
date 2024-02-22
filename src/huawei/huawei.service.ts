@@ -128,7 +128,7 @@ export class HuaweiService {
   }
 
   // Retrieve the real time data from the inverter
-  @Cron(CronExpression.EVERY_HOUR, { name: 'huawei' })
+  // @Cron(CronExpression.EVERY_HOUR, { name: 'huawei' })
   async storeDevRealTime() {
     try {
       const { data } = await firstValueFrom(

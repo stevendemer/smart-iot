@@ -13,7 +13,6 @@ import { DbService } from '../db/db.service';
 import { EVDto } from './dto/ev.dto';
 import { AmpecoService } from '../ampeco/ampeco.service';
 import { ChargeSessionEvent } from '../notifications/charge-session.event';
-import { AccessTokenGuard } from '../auth/guards/at.guard';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -53,17 +52,6 @@ export class EvController {
           currentChargeLevel,
         },
       });
-
-      // const isCharging = await this.ampecoService.isCurrentlyCharging(
-      //   this.chargePointId,
-      // );
-
-      // if (isCharging) {
-      //   return {
-      //     message:
-      //       'The charge station: ' + this.chargePointId + ' is unavailable',
-      //   };
-      // }
 
       // trigger the cron job for storing the session info
       this.eventEmitter.emit('charging.started', new ChargeSessionEvent(true));

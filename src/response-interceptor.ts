@@ -30,12 +30,10 @@ export class ResponseInterceptor implements NestInterceptor {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    return response.status(status).json({
-      success: false,
-      statusCode: status,
-      path: request.url,
-      message: exception.message,
-    });
+    return {
+      status,
+      message: JSON.stringify(exception.message),
+    };
   }
 
   responseHandler(res: any, context: ExecutionContext) {

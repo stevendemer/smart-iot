@@ -11,8 +11,6 @@ import { TokenService } from './token.service';
   imports: [
     ConfigModule,
     HttpModule.register({
-      timeout: 8000,
-      maxRedirects: 5,
       baseURL: process.env.HUAWEI_BASE_URL,
     }),
   ],

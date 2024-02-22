@@ -7,8 +7,6 @@ import { AmpecoController } from './ampeco.controller';
   providers: [AmpecoService],
   imports: [
     HttpModule.register({
-      timeout: 8000,
-      maxRedirects: 5,
       baseURL: process.env.AMPECO_BASE_URI,
       headers: {
         Authorization: `Bearer ${process.env.AMPECO_API_TOKEN}`,
