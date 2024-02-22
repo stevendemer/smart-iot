@@ -10,6 +10,11 @@ import helmet from 'helmet';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  });
+
   app.use(
     session({
       secret: 'secret',
@@ -20,7 +25,6 @@ async function bootstrap() {
 
   app.use(passport.initialize());
   app.use(passport.session());
-  app.use(helmet());
 
   const port = process.env.PORT || 5000;
 

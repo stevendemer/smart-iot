@@ -23,6 +23,7 @@ export class PricesService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    await this.deletePrices();
     await this.storePrices();
   }
 
@@ -266,6 +267,9 @@ export class PricesService implements OnModuleInit {
           hour: true,
           price: true,
         },
+        orderBy: {
+          date: 'desc',
+        },
       });
     } catch (error) {
       this.logger.error(error);
@@ -280,6 +284,10 @@ export class PricesService implements OnModuleInit {
         hour: true,
         date: true,
       },
+      orderBy: {
+        date: 'desc',
+      },
+      take: 48,
     });
   }
 
@@ -368,5 +376,15 @@ export class PricesService implements OnModuleInit {
 
     const timeInterval = `${sd.toISOString()}/${ed.toISOString()}`;
     return timeInterval;
+  }
+
+  async deletePrices() {
+    try {
+      await this.dbService.energyPrice.deleteMany({});
+      return true;
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
   }
 }
