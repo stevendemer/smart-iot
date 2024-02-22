@@ -5,14 +5,20 @@ import { ValidationPipe } from '@nestjs/common';
 import { ResponseInterceptor } from './response-interceptor';
 import * as session from 'express-session';
 import * as passport from 'passport';
-import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: true,
+    credentials: true,
+    allowedHeaders: [
+      'Content-Type',
+      'Origin',
+      'X-Requested-With',
+      'Accept',
+      'Authorization',
+    ],
   });
 
   app.use(
@@ -22,9 +28,6 @@ async function bootstrap() {
       saveUninitialized: false,
     }),
   );
-
-  app.use(passport.initialize());
-  app.use(passport.session());
 
   const port = process.env.PORT || 5000;
 
