@@ -15,6 +15,8 @@ import { AmpecoService } from '../ampeco/ampeco.service';
 import { ChargeSessionEvent } from '../notifications/charge-session.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiTags } from '@nestjs/swagger';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @ApiTags('Electric Vehicle')
 @Controller('ev')
@@ -27,6 +29,7 @@ export class EvController {
     private readonly dbService: DbService,
     private readonly ampecoService: AmpecoService,
     private eventEmitter: EventEmitter2,
+    private readonly httpService: HttpService,
   ) {}
 
   /**
@@ -139,6 +142,30 @@ export class EvController {
           carBatteryCapacity: 'asc',
         },
       });
+    } catch (error) {
+      this.logger.error(error);
+      throw error;
+    }
+  }
+
+  @Post('/result')
+  async sendMessage(@Body() body: any) {
+    try {
+      const { data, status } = await firstValueFrom(
+        this.httpService.post('https://thesmartproject.gr/the-tool/', {
+          message: body.message,
+        }),
+      );
+
+      console.log(body.message);
+      console.log('Message sent');
+
+      if (status === 200 || status === 201) {
+        console.log('Message sent successfully');
+      } else {
+        console.log('Error sending back the result', status);
+        console.log(data);
+      }
     } catch (error) {
       this.logger.error(error);
       throw error;
