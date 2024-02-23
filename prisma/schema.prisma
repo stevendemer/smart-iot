@@ -16,6 +16,7 @@ model EVReading {
   durationStay       Int
   currentChargeLevel Int
   carBatteryCapacity Int
+  uid                String?
   createdAt          DateTime @default(now())
 
   @@map("ev_readings")

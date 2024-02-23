@@ -24,6 +24,7 @@ export class EvController {
   private logger = new Logger(EvController.name);
   private chargePointId = 63205; // RENEL-IKE Thess
   private evseNetworkId = 1;
+  private uid = '';
 
   constructor(
     private readonly dbService: DbService,
@@ -35,6 +36,8 @@ export class EvController {
   /**
    * Retrieve the user input from the MMS form
    * @param body
+   * JWT token identifier for the same request
+   * uid
    */
   @Post('/readings')
   @HttpCode(HttpStatus.CREATED)
@@ -45,7 +48,10 @@ export class EvController {
         currentChargeLevel,
         minChargeLevel,
         durationStay,
+        uid,
       } = body;
+
+      this.uid = uid;
 
       await this.dbService.eVReading.create({
         data: {
@@ -53,6 +59,7 @@ export class EvController {
           minChargeLevel,
           durationStay,
           currentChargeLevel,
+          uid,
         },
       });
 
@@ -151,21 +158,19 @@ export class EvController {
   @Post('/result')
   async sendMessage(@Body() body: any) {
     try {
-      const { data, status } = await firstValueFrom(
-        this.httpService.post('https://thesmartproject.gr/the-tool/', {
-          message: body.message,
-        }),
-      );
+      // const { data, status } = await firstValueFrom(
+      //   this.httpService.post('https://thesmartproject.gr/the-tool/', {
+      //     message: body.message,
+      //   }),
+      // );
 
       console.log(body.message);
       console.log('Message sent');
 
-      if (status === 200 || status === 201) {
-        console.log('Message sent successfully');
-      } else {
-        console.log('Error sending back the result', status);
-        console.log(data);
-      }
+      return {
+        message: 'Mock data',
+        uid: this.uid,
+      };
     } catch (error) {
       this.logger.error(error);
       throw error;
