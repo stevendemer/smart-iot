@@ -59,7 +59,6 @@ export class EvController {
           minChargeLevel,
           durationStay,
           currentChargeLevel,
-          uid,
         },
       });
 
