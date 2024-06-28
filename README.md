@@ -24,7 +24,9 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+<p align='center'>Daemon process responsible for providing the most optimal courses of action for an EV charging session. The service takes into consideration the solar radiation, energy prices (ENTSOE), current battery percentage and estimated duration of stay
+and returns the appropriate response. </p>
+
 
 ## Installation
 
