@@ -79,6 +79,8 @@ $ npm run test:cov
 - Extracting and processing only the attributes deemed relevant to our objectives.
 
 
+## Website
+[The Smart Project](https://thesmartproject.gr/the-tool/)
 
 
 ## Contacts
