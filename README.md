@@ -54,7 +54,8 @@ $ npm run test:cov
 </p>
 
 <p align="center">
-  The <strong>prices</strong> module fetches the day-ahead prices from the ENTSOE API (EUR/MWH) once per day at 22:00 PM (UTC+2).</p>
+  The <strong>prices</strong> module fetches the day-ahead prices from the ENTSOE API (EUR/MWH) once per day at 22:00 PM (UTC+2).
+</p>
 
 - Parsing the XML document obtained from the ENTSOE API.
 - Extracting and processing only the attributes deemed relevant to our objectives.
