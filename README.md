@@ -5,9 +5,7 @@
 
 ## Description
 
-<p align='center'>Daemon process responsible for providing the most optimal course of action for an EV charging session. The service takes into consideration the solar radiation, energy prices (ENTSOE), current battery percentage and estimated duration of stay
-and returns the appropriate response. </p>
-
+<p>Nest API responsible for providing an optimal course of action for your EV charging session. The service takes into consideration the solar radiation, energy prices (euro / kwh), current battery percentage,  duration of stay and returns the appropriate response. </p>
 
 ## Installation
 
