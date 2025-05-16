@@ -38,15 +38,10 @@ $ npm run test:cov
 
 ## Modules summary
 
-- Weather Module
-- Prices Module
-- Ampeco Module
-- Huawei Module
-- Auth Module
-
-<p>
-  The <strong>weather</strong> module consists of a single singleton that is responsible for retrieving the 7-day ahead weather forecast and storing in our database.
-</p>
+- weather forecast module
+- Energy prices module
+- ampeco session module (charging station info)
+- Huawei module (PV)
 
 <p>
   The <strong>prices</strong> module fetches the day-ahead prices from the ENTSOE API (EUR/MWH) once per day at 22:00 PM (UTC+2).
@@ -54,7 +49,6 @@ $ npm run test:cov
 
 - Parsing the XML document obtained from the ENTSOE API.
 - Extracting and processing only the attributes deemed relevant to our objectives.
-
 
 ## Website
 [The Smart Project](https://thesmartproject.gr/the-tool/)
