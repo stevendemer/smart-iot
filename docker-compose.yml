@@ -2,7 +2,7 @@ version: '3.3'
 
 services:
   postgres-db:
-    image: postgres:13
+    image: postgres:15
     container_name: postgres
     ports:
       - '5432:5432'
@@ -17,25 +17,26 @@ services:
     env_file:
       - .env
 
-  pgadmin4:
-    image: dpage/pgadmin4
-    container_name: pgadmin4
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: nest-api
     ports:
-      - '5050:80'
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@gmail.com
-      - PGADMIN_DEFAULT_PASSWORD=helloworld
+      - "3000:3000"
     depends_on:
       - postgres-db
     networks:
       - renel-network
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
+    environment:
+      - DATABASE_URL=postgresql://admin:helloworld@postgres-db:5432/renel-db?schema=public
+    command: sh -c "npx prisma migrate deploy && npm run start:dev"
+  
 
 volumes:
   postgres-db:
-  pgadmin-data:
-
+  
 networks:
   renel-network:
     driver: bridge
