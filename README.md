@@ -44,11 +44,11 @@ $ npm run test:cov
 - Huawei Module
 - Auth Module
 
-<p align="center">
+<p>
   The <strong>weather</strong> module consists of a single singleton that is responsible for retrieving the 7-day ahead weather forecast and storing in our database.
 </p>
 
-<p align="center">
+<p>
   The <strong>prices</strong> module fetches the day-ahead prices from the ENTSOE API (EUR/MWH) once per day at 22:00 PM (UTC+2).
 </p>
 
